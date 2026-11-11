@@ -57,4 +57,4 @@ jobs:
           name: phase19-windows-${{ matrix.scenario }}
           path: ${{ runner.temp }}/phase19-evidence/lifecycle.json
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 1

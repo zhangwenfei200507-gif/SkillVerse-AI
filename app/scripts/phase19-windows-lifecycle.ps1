@@ -22,7 +22,8 @@ if ($Environment -eq 'IsolatedGuest' -and $ExerciseRecovery -and
 }
 $installDirectory = Join-Path $env:LOCALAPPDATA 'SkillVerse AI'
 $dataDirectory = Join-Path $env:APPDATA 'ai.skillverse.codex'
-$database = Join-Path $dataDirectory 'installation.sqlite3'
+# The packaged release uses the normal application data directory.
+$database = Join-Path $dataDirectory 'skillverse.sqlite3'
 if ($env:APPDATA -ne [Environment]::GetFolderPath('ApplicationData') -or
     $env:LOCALAPPDATA -ne [Environment]::GetFolderPath('LocalApplicationData') -or
     $env:WEBVIEW2_USER_DATA_FOLDER -or $env:WEBVIEW2_BROWSER_EXECUTABLE_FOLDER -or
@@ -110,9 +111,18 @@ function Start-And-Close($stage, [switch]$Terminate) {
             Start-Sleep -Milliseconds 350
             $process.Refresh()
             if ($process.HasExited) { throw "Application exited before readiness ($($process.ExitCode))." }
-            if ([DateTime]::UtcNow -ge $deadline) { throw 'Timed out waiting for the database, application window, and WebView2.' }
-            $webview = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($process.Id) AND Name = 'msedgewebview2.exe'"
-        } until ((Test-Path -LiteralPath $database) -and $process.MainWindowHandle -ne [IntPtr]::Zero -and $webview)
+            $webview = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($process.Id) AND Name = 'msedgewebview2.exe'")
+            $entry.readiness = [ordered]@{
+                databaseExists = Test-Path -LiteralPath $database -PathType Leaf
+                windowHandlePresent = $process.MainWindowHandle -ne [IntPtr]::Zero
+                webView2ChildCount = $webview.Count
+            }
+            $ready = $entry.readiness.databaseExists -and $entry.readiness.windowHandlePresent -and
+                $entry.readiness.webView2ChildCount -gt 0
+            if (-not $ready -and [DateTime]::UtcNow -ge $deadline) {
+                throw ('First launch readiness timed out. ' + ($entry.readiness | ConvertTo-Json -Compress))
+            }
+        } until ($ready)
         $entry.windowCreated = $true
         $entry.webView2Started = $true
         $entry.database = Test-Database 'check'
@@ -173,16 +183,17 @@ try {
     Test-Database 'seed' | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $baseline
     if ($Scenario -eq 'Upgrade') {
         Install-Candidate '0.1.2' 'upgrade'
-    } else {
-        $report.stage = 'uninstall'
-        $process = Start-Process -FilePath (Join-Path $installDirectory 'uninstall.exe') -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
-        $report.steps.uninstall = [ordered]@{ exitCode = $process.ExitCode }
-        if ($process.ExitCode -or (Test-Path $uninstallKey) -or (Test-Path $installDirectory)) {
-            throw 'Uninstall did not remove the registered application files.'
-        }
-        $report.steps.uninstall.data = Test-Database 'compare' $baseline
-        Install-Candidate '0.1.2' 'reinstall'
+        Start-And-Close 'upgradeLaunch'
+        $report.steps.upgradeLaunch.retention = Test-Database 'compare' $baseline
     }
+    $report.stage = 'uninstall'
+    $process = Start-Process -FilePath (Join-Path $installDirectory 'uninstall.exe') -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
+    $report.steps.uninstall = [ordered]@{ exitCode = $process.ExitCode }
+    if ($process.ExitCode -or (Test-Path $uninstallKey) -or (Test-Path $installDirectory)) {
+        throw 'Uninstall did not remove the registered application files.'
+    }
+    $report.steps.uninstall.data = Test-Database 'compare' $baseline
+    Install-Candidate '0.1.2' 'reinstall'
     if ($ExerciseRecovery) {
         Start-And-Close 'forcedExit' -Terminate
     }
