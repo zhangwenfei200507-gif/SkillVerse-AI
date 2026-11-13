@@ -1,0 +1,11 @@
+CREATE TABLE ai_subjects(logical_id TEXT PRIMARY KEY,entity_id TEXT NOT NULL REFERENCES entities(id));
+CREATE TABLE ai_provider_settings(id TEXT PRIMARY KEY,settings_json TEXT NOT NULL CHECK(json_valid(settings_json)));
+CREATE TABLE ai_analysis_records(id TEXT PRIMARY KEY,logical_id TEXT NOT NULL REFERENCES ai_subjects(logical_id),cache_key TEXT NOT NULL,profile_json TEXT NOT NULL CHECK(json_valid(profile_json)),created_at INTEGER NOT NULL,UNIQUE(logical_id,cache_key));
+CREATE TABLE ai_classification_proposals(id TEXT PRIMARY KEY,logical_id TEXT NOT NULL REFERENCES ai_subjects(logical_id),category TEXT,state TEXT NOT NULL DEFAULT 'PENDING_REVIEW',reason TEXT NOT NULL,confidence REAL NOT NULL);
+CREATE TABLE ai_category_overrides(logical_id TEXT PRIMARY KEY REFERENCES ai_subjects(logical_id),category TEXT NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE ai_capability_relations(id TEXT PRIMARY KEY,left_id TEXT NOT NULL REFERENCES ai_subjects(logical_id),right_id TEXT NOT NULL REFERENCES ai_subjects(logical_id),kind TEXT NOT NULL,state TEXT NOT NULL,evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json)));
+CREATE TABLE ai_suggestions(id TEXT PRIMARY KEY,kind TEXT NOT NULL,body_json TEXT NOT NULL CHECK(json_valid(body_json)),created_at INTEGER NOT NULL);
+CREATE TABLE ai_request_usage(id TEXT PRIMARY KEY,logical_id TEXT NOT NULL REFERENCES ai_subjects(logical_id),day TEXT NOT NULL,status TEXT NOT NULL,reserved_tokens INTEGER NOT NULL,input_tokens INTEGER,output_tokens INTEGER,error_code TEXT);
+CREATE TABLE ai_audit_events(id TEXT PRIMARY KEY,action TEXT NOT NULL,details_json TEXT NOT NULL CHECK(json_valid(details_json)),created_at INTEGER NOT NULL);
+INSERT INTO schema_migrations(version,name) VALUES(8,'capability_intelligence');
+PRAGMA user_version=8;

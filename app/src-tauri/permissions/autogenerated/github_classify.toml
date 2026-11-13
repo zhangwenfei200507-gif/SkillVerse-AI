@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-github-classify"
+description = "Enables the github_classify command without any pre-configured scope."
+commands.allow = ["github_classify"]
+
+[[permission]]
+identifier = "deny-github-classify"
+description = "Denies the github_classify command without any pre-configured scope."
+commands.deny = ["github_classify"]

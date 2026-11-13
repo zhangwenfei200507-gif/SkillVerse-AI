@@ -1,0 +1,31 @@
+:root {
+  --bg: #0b1424;
+  --surface: #0d192b;
+  --surface-raised: #14233a;
+  --line: rgba(130, 168, 211, .2);
+  --text: #edf5ff;
+  --muted: #91a8c3;
+  --ice: #d6e9ff;
+  --blue: #6abfff;
+  --cyan: #69e0f5;
+  --display: "Bahnschrift", "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  --sans: "Segoe UI Variable Text", "Segoe UI", Arial, sans-serif;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-size: 13px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100vh; background: var(--bg); }
+button, input { font: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid #8bd1f5; outline-offset: 3px; }
+::selection { color: #061522; background: #8fd6fa; }

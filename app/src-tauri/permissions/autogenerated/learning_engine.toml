@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-learning-engine"
+description = "Enables the learning_engine command without any pre-configured scope."
+commands.allow = ["learning_engine"]
+
+[[permission]]
+identifier = "deny-learning-engine"
+description = "Denies the learning_engine command without any pre-configured scope."
+commands.deny = ["learning_engine"]

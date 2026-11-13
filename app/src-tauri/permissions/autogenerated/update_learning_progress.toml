@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-learning-progress"
+description = "Enables the update_learning_progress command without any pre-configured scope."
+commands.allow = ["update_learning_progress"]
+
+[[permission]]
+identifier = "deny-update-learning-progress"
+description = "Denies the update_learning_progress command without any pre-configured scope."
+commands.deny = ["update_learning_progress"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-installation-verify"
+description = "Enables the installation_verify command without any pre-configured scope."
+commands.allow = ["installation_verify"]
+
+[[permission]]
+identifier = "deny-installation-verify"
+description = "Denies the installation_verify command without any pre-configured scope."
+commands.deny = ["installation_verify"]

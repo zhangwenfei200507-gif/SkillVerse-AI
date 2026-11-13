@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-github-resume"
+description = "Enables the github_resume command without any pre-configured scope."
+commands.allow = ["github_resume"]
+
+[[permission]]
+identifier = "deny-github-resume"
+description = "Denies the github_resume command without any pre-configured scope."
+commands.deny = ["github_resume"]

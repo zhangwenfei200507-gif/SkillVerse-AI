@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-load-graph-layout"
+description = "Enables the load_graph_layout command without any pre-configured scope."
+commands.allow = ["load_graph_layout"]
+
+[[permission]]
+identifier = "deny-load-graph-layout"
+description = "Denies the load_graph_layout command without any pre-configured scope."
+commands.deny = ["load_graph_layout"]

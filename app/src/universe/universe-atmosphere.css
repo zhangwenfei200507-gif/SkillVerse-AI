@@ -1,0 +1,322 @@
+.universe-app {
+  --signal: #91cbff;
+  --signal-rgb: 110 179 255;
+  --ink: #f0f6ff;
+  --text: #b5c8e3;
+  --quiet: #8ca6c9;
+  --glass: #09172ae6;
+  color: var(--ink);
+}
+
+.universe-app[data-scene="Discover"] { --signal: #c4b0ff; --signal-rgb: 163 130 255; }
+.universe-app[data-scene="Installed"] { --signal: #a6e8ff; --signal-rgb: 107 200 234; }
+.universe-app[data-scene="Learning"] { --signal: #c8baff; --signal-rgb: 164 147 255; }
+.universe-app[data-mission-open="true"] { --signal: #9ae5ff; --signal-rgb: 102 195 245; }
+
+.universe-nav {
+  height: 76px;
+  gap: clamp(18px, 3.4vw, 66px);
+  background: linear-gradient(180deg, #071223f0, #0a1629ab 75%, #0a162941);
+  border-bottom: 1px solid #a3c8ff12;
+}
+.universe-brand strong { font-size: clamp(20px, 1.75vw, 28px); }
+.universe-brand small { color: #abc2df; font-size: 11px; letter-spacing: .03em; }
+.universe-brand > span { border-color: #8ccfff65; box-shadow: inset 0 0 22px #3866bc36, 0 0 22px #286ab133; }
+.universe-nav nav button { height: 44px; font-size: 13px; color: #a7bfdd; }
+.universe-nav nav button[aria-current=page] {
+  color: var(--ink);
+  background: radial-gradient(ellipse at 24% 65%, rgb(var(--signal-rgb) / .19), transparent 74%), #1c39645c;
+  box-shadow: inset 0 1px rgb(var(--signal-rgb) / .35), 0 8px 22px #02091961;
+}
+.universe-nav nav button[aria-current=page]::after { background: var(--signal); box-shadow: 0 0 12px var(--signal); }
+.universe-connection { color: var(--text); font-size: 12px; }
+
+.spatial-toolbar { top: 99px; }
+.spatial-breadcrumb { color: var(--quiet); font-size: 12px; margin-bottom: 13px; }
+.spatial-tools { width: fit-content; max-width: 100%; }
+.spatial-search { width: min(310px, 29vw); height: 38px; color: var(--signal); border-color: rgb(var(--signal-rgb) / .32); }
+.spatial-search input { font-size: 14px; }
+.spatial-search input::placeholder { color: var(--quiet); }
+.spatial-search:focus-within { border-color: var(--signal); box-shadow: 0 5px 14px -12px var(--signal); }
+.scene-title { margin: 15px 0 13px; pointer-events: none; }
+.scene-title h1 {
+  margin: 0;
+  color: #edf5ff;
+  font: 560 clamp(31px, 3.55vw, 61px)/1.03 Bahnschrift, "Segoe UI Variable Display", sans-serif;
+  letter-spacing: -.045em;
+  text-shadow: 0 4px 42px rgb(var(--signal-rgb) / .35), 0 2px 6px #050915b0;
+}
+.scene-title p { margin: 7px 0 0; color: #b2c9eb; font-size: 15px; text-shadow: 0 1px 10px #02050d; }
+[data-scene="Learning"] .scene-title { margin-top: 25px; }
+[data-scene="Discover"] .spatial-breadcrumb, [data-scene="Installed"] .spatial-breadcrumb { margin-bottom: 8px; }
+.universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .scene-title {
+  position: absolute;
+  top: 6px;
+  left: 53%;
+  width: max-content;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .search-palette { top: 224px; }
+
+.core-caption { position: absolute; top: 0; left: 0; z-index: 19; pointer-events: none; transform: translate3d(-9999px, 0, 0); }
+.universe-app .universe-core-label {
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  background: radial-gradient(ellipse at top, #173755ad, #07152bdc 60%, #07152b5c) !important;
+  box-shadow: inset 0 1px rgb(var(--signal-rgb) / .38), 0 7px 33px #030a1c66;
+  padding: 12px 22px !important;
+}
+.universe-core-label strong { font-size: 17px; letter-spacing: .11em; }
+.universe-core-label small { font-size: 10px; letter-spacing: .09em; color: #c0d6f0; }
+.spatial-orb-icon { color: #e1f2ff !important; filter: drop-shadow(0 0 5px rgb(var(--signal-rgb) / .67)) drop-shadow(0 1px 1px #071125); }
+.spatial-label { gap: 2px; }
+.spatial-label strong { color: #edf5ff; font-size: 14px; }
+.spatial-label small { color: #b1c7e2; font-size: 10px; }
+.orbital-label { transform: translate(-50%, 25px); }
+.orbital-label.kind-stage { transform: translate(-50%, 38px); }
+.universe-app .column-label { width: max-content; max-width: 160px; }
+.column-label strong { font-weight: 550; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.column-label small { font-size: 9px; }
+.column-label.kind-capability strong { display: block; }
+.universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .column-label { width: max-content; max-width: 190px; }
+.universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .column-label strong { font-size: 13px; }
+.universe-app .spatial-label.selected {
+  background: linear-gradient(100deg, rgb(var(--signal-rgb) / .19), #0b1b33bf);
+  box-shadow: inset 0 1px rgb(var(--signal-rgb) / .62), inset 0 -1px rgb(var(--signal-rgb) / .23), 0 0 20px rgb(var(--signal-rgb) / .23);
+}
+.universe-app .spatial-label:active, .universe-app .universe-core-label:active {
+  box-shadow: inset 0 0 0 1px var(--signal), 0 0 26px rgb(var(--signal-rgb) / .57);
+}
+.spatial-label.kind-stage strong { font-size: 15px; }
+.spatial-label.kind-stage small { max-width: 142px; margin-inline: auto; }
+.tree-actions button, .exit-focus, .open-pod { font-size: 12px; min-height: 34px; }
+.universe-zoom { background: #071327ad; box-shadow: inset 0 1px #b6d4ff23; }
+.universe-zoom span, .universe-footer { font-size: 11px; color: #acc2e1; }
+.universe-zoom button:hover { color: var(--signal); }
+.diagnostics-trigger { font-size: 11px !important; }
+
+.spatial-pod {
+  top: 87px;
+  bottom: 22px;
+  padding: clamp(19px, 1.8vw, 33px);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgb(var(--signal-rgb) / .18), transparent 36%),
+    linear-gradient(149deg, #102340de, var(--glass) 59%, #071120f4);
+  box-shadow: -20px 10px 65px #01040d50, inset 1px 0 rgb(var(--signal-rgb) / .36), inset 0 1px rgb(var(--signal-rgb) / .49);
+  backdrop-filter: blur(17px);
+}
+.pod-heading { margin-bottom: 18px; }
+.pod-heading span:not(.intelligence-mark) { font-size: clamp(20px, 1.65vw, 28px); }
+.pod-heading small { font-size: 12px; color: var(--text); }
+.intelligence-mark { color: var(--signal); }
+.pod-subject { min-height: 73px; }
+.pod-subject > svg, .pod-capability-icon {
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 23%, rgb(var(--signal-rgb) / .3), #10274a71 67%, #060d22b0);
+  box-shadow: inset 0 1px rgb(var(--signal-rgb) / .56), 0 0 24px rgb(var(--signal-rgb) / .13);
+}
+.pod-subject small { font-size: 11px; color: var(--quiet); }
+.pod-subject h1 { font-size: clamp(24px, 2.2vw, 36px); letter-spacing: -.025em; }
+.pod-source { font-size: 12px; color: var(--signal); }
+.pod-description, .pod-section p, .capability-description p { font-size: 14px; line-height: 1.55; color: var(--text); }
+.pod-description { margin-block: 12px; }
+.pod-section { padding: 13px 0; }
+.pod-section h2 { font-size: 15px; font-weight: 600; color: #cfe3ff; margin-bottom: 6px; }
+.pod-section .pod-muted, .pod-section dl > div, .installation-label { font-size: 12px; }
+.pod-section dt, .pod-section .pod-muted { color: var(--quiet); }
+.source-counts { margin-block: 19px; }
+.source-counts span { font-size: 11px; color: var(--text); }
+.source-counts strong { font-size: 33px; color: var(--ink); }
+.pod-primary, .pod-secondary { font-size: 13px !important; }
+.universe-app .pod-primary { background: linear-gradient(110deg, #2565c4, #4654c9); }
+.scan-console { font-size: 12px; }
+.vault-types button { font-size: 14px; }
+.vault-types small { display: block; color: var(--quiet); font-size: 11px; }
+.console-tabs button, .console-field, .console-toggle { font-size: 13px; }
+.console-toggle small, .console-field small { color: var(--quiet); }
+
+.universe-app .mission-control {
+  background: linear-gradient(145deg, #0a192be5, #081323d4);
+  border: 0;
+  box-shadow: inset 0 1px #8ed6f350, 0 24px 66px #02061379;
+  backdrop-filter: blur(12px);
+  font-size: 14px;
+}
+.mission-control .mission-header h1 { font: 550 clamp(24px, 2.6vw, 38px)/1.13 Bahnschrift, "Segoe UI", sans-serif; letter-spacing: -.035em; }
+.mission-control .mission-header h1 svg { color: var(--signal); filter: drop-shadow(0 0 8px #64d5ff80); }
+.mission-control .mission-canvas { background: radial-gradient(ellipse at 24% 45%, #1c4b654f, transparent 72%), #040e1cbf; border: 0; box-shadow: inset 0 1px #7bb8da33; }
+.mission-control .mission-node {
+  background: radial-gradient(ellipse at 0% 0%, #38548d4d, transparent 70%), #10213cf5;
+  border-radius: 13px 22px 13px 22px;
+  border-width: 1px 0 0 1px;
+}
+.mission-control .mission-core { background: radial-gradient(ellipse at 20% 18%, #366a9ca6, #112648 66%, #0e1b37); border-radius: 39px 16px 39px 16px; }
+.mission-control .mission-inspector { border-left: 1px solid #8fbfe91f; padding-inline: 16px 6px; }
+.mission-control .mission-node-signal small, .mission-control .mission-node-state { font-size: 12px; }
+.mission-control .mission-execution-strip { padding: 9px 0 12px; border-bottom: 1px solid #8bc7e325; }
+.mission-control .mission-progress { height: 5px; width: clamp(95px, 10vw, 170px); }
+.mission-control .mission-progress span { background: linear-gradient(90deg, #648bff, #8ee9ff); }
+.mission-control .mission-edge.edge-active .react-flow__edge-path { stroke: #9de7ff; filter: drop-shadow(0 0 4px #80e2ff); }
+.mission-control .mission-empty-core { box-shadow: inset 0 1px #9ed6ff70, 0 0 0 12px #609cd919, 0 0 74px #559de744; }
+
+.universe-app[data-motion="reduced"] :is(.spatial-label, .spatial-orb-icon, .mission-node, .mission-progress span, .mission-spinner, .universe-nav button) { transition: none; animation: none; }
+
+@media (min-width: 761px) {
+  .mission-control:not(.mission-focused) .mission-grid { min-height: 295px; }
+  .mission-control:not(.mission-focused) :is(.mission-canvas, .mission-inspector) { height: clamp(295px, calc(100dvh - 580px), 590px); min-height: 295px; }
+}
+@media (min-width: 761px) and (max-height: 820px) {
+  .mission-control { padding-block: 16px; }
+  .mission-control .mission-header h1 { font-size: 28px; }
+  .mission-control .mission-header p { margin-bottom: 6px; }
+  .mission-control .mission-composer { margin-block: 9px 13px; }
+  .mission-control .mission-toolbar { padding-block: 7px; }
+  .mission-control .mission-execution-strip { margin-bottom: 9px; padding-block: 6px; }
+}
+@media (max-width: 1100px) {
+  .universe-nav nav button { font-size: 12px; }
+  .universe-footer { font-size: 10px; }
+  .tree-actions button { font-size: 11px; }
+}
+@media (max-width: 760px) {
+  .universe-nav { height: 65px; gap: 12px; }
+  .universe-nav nav button { padding-inline: clamp(5px, 2vw, 10px); }
+  .spatial-toolbar { top: 79px; }
+  .spatial-search { width: min(245px, 74vw); }
+  .scene-title { margin: 8px 0 4px; }
+  .universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .scene-title { position: static; transform: none; text-align: left; }
+  .scene-title h1 { font-size: 28px; }
+  .scene-title p { font-size: 12px; }
+  .spatial-pod { top: auto; bottom: 12px; padding: 15px 18px; }
+  .universe-app .column-label, .universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .column-label { max-width: 108px; }
+  .column-label strong, .universe-app:is([data-scene="Discover"], [data-scene="Installed"]) .column-label strong { font-size: 10px; }
+  .column-label small { font-size: 8px; }
+  .universe-core-label strong { font-size: 13px; }
+  .universe-core-label small { font-size: 8px; }
+  .mission-control .mission-inspector { border-left: 0; padding-inline: 4px; }
+}
+
+/* The scene supplies depth. UI surfaces keep the text and controls in a quiet plane. */
+.universe-app {
+  --glass: #091528ed;
+  --text: #c1d1e8;
+  --quiet: #a1b7d3;
+  --surface-shadow: 0 20px 60px #01050c78;
+  background:
+    radial-gradient(ellipse at 22% 44%, #12284d 0, transparent 52%),
+    radial-gradient(ellipse at 62% 62%, #241b3c 0, transparent 58%),
+    #060e1e;
+}
+.universe-app[data-scene="Learning"] { --signal: #e1b9ec; --signal-rgb: 184 142 224; }
+.universe-nav { gap: clamp(12px, 2.7vw, 46px); }
+.universe-nav nav { min-width: 0; gap: 4px; }
+.universe-nav nav button { padding-inline: clamp(8px, 1vw, 14px); white-space: nowrap; }
+.universe-nav nav button[aria-current="page"]::after { height: 2px; opacity: .75; }
+.universe-app .spatial-search { width: min(320px, 32vw); min-height: 42px; }
+.spatial-search input { line-height: 1.4; }
+.search-palette {
+  top: 174px;
+  width: min(360px, calc(100vw - 80px));
+  max-height: min(52vh, 460px);
+  padding: 0 9px 9px;
+  background: linear-gradient(150deg, #13243bea, #091426f7);
+  box-shadow: var(--surface-shadow), inset 0 1px #a3beff45;
+  scrollbar-width: thin;
+}
+.search-palette p {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 11px;
+  color: var(--quiet);
+  background: #132238;
+  font-size: 12px;
+  border-radius: 10px 10px 0 0;
+}
+.search-palette button { min-height: 40px; gap: 12px; color: var(--ink); font-size: 13px; }
+.search-palette button:is(:hover, :focus-visible) { background: #3758845c; }
+.search-palette button:focus-visible { outline-offset: -2px; }
+.search-palette button span { overflow-wrap: anywhere; }
+.search-palette small { padding: 0; color: var(--text); font-size: 11px; white-space: nowrap; }
+.spatial-pod {
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 10% -8%, rgb(var(--signal-rgb) / .16), transparent 38%),
+    linear-gradient(150deg, #14243cec, var(--glass) 56%, #081322f5);
+  box-shadow: var(--surface-shadow), inset 0 1px rgb(var(--signal-rgb) / .34);
+  scrollbar-gutter: stable;
+}
+.pod-heading { gap: 10px; }
+.pod-heading > button { min-width: 36px; min-height: 36px; border-radius: 10px; color: var(--text); }
+.pod-heading > button:hover { background: #7eabf320; color: var(--ink); }
+.pod-section { border-color: #9ab4db24; }
+.pod-section h2 { line-height: 1.4; }
+.pod-section p, .pod-description { line-height: 1.6; }
+.capability-destinations { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 8px; margin: 10px 0; }
+.universe-app .capability-destinations :is(button, a) {
+  display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px;
+  padding: 6px 10px; text-align: center; border-radius: 11px; color: var(--text);
+  background: #7597dc18; box-shadow: inset 0 1px #9fbaff24; font-size: 12px; line-height: 1.35;
+}
+.capability-destinations svg { flex: none; color: var(--signal); }
+.universe-app :is(.pod-primary, .pod-secondary, .tree-actions button, .capability-destinations :is(button, a), .mission-control button, .universe-nav nav button) {
+  transition: color 160ms ease, background-color 160ms ease, box-shadow 180ms ease, transform 100ms ease;
+}
+.universe-app :is(.pod-primary, .pod-secondary, .capability-destinations :is(button, a), .mission-control button):hover:not(:disabled) {
+  box-shadow: inset 0 1px rgb(var(--signal-rgb) / .42), 0 6px 20px rgb(var(--signal-rgb) / .12);
+}
+.universe-app :is(.pod-primary, .pod-secondary, .tree-actions button, .capability-destinations :is(button, a), .mission-control button, .universe-nav nav button):active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px rgb(var(--signal-rgb) / .5), 0 0 17px rgb(var(--signal-rgb) / .21);
+}
+.universe-app :is(button, a, input, textarea, select):focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+.universe-app .spatial-search input:focus-visible { outline: none; }
+.universe-app .search-palette button:focus-visible { outline-offset: -2px; }
+.universe-app :is(.pod-primary, .pod-secondary, .scan-console button, .console-tabs button) { min-height: 38px; }
+.console-toggle small, .console-field small { font-size: 12px; line-height: 1.5; }
+.display-telemetry {
+  position: absolute;
+  z-index: 4;
+  left: 40px;
+  top: min(41vh, 355px);
+  width: min(410px, calc(66vw - 75px));
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 15px;
+  padding: 18px;
+  border-radius: 17px;
+  background: linear-gradient(120deg, #122239dc, #0a172add);
+  box-shadow: var(--surface-shadow), inset 0 1px #aacbff38;
+  pointer-events: none;
+}
+.display-telemetry-icon { width: 46px; height: 46px; display: grid; place-items: center; color: var(--signal); background: #7aaef122; border-radius: 50%; }
+.display-telemetry h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.display-telemetry p { margin: 4px 0 13px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.display-telemetry dl { display: flex; flex-wrap: wrap; gap: 9px 22px; margin: 0; }
+.display-telemetry dt { color: var(--quiet); font-size: 11px; }
+.display-telemetry dd { margin: 4px 0 0; font-size: 13px; font-weight: 550; }
+.mission-control .mission-composer textarea:focus-visible { border-color: var(--signal); }
+.mission-control .mission-node.status-waiting_approval { border-color: #cfb1e5; }
+.universe-app[data-motion="reduced"] :is(button, a, .mission-node, .mission-progress span) { transition: none; }
+.universe-app[data-motion="reduced"] :is(button, a):active { transform: none; }
+@media (max-width: 760px) {
+  .universe-app .spatial-search { width: min(255px, 74vw); }
+  .search-palette { top: 151px; left: 20px; width: min(330px, calc(100vw - 40px)); }
+  .display-telemetry { top: 202px; left: 20px; width: min(345px, calc(100vw - 40px)); }
+}
+
+
+.universe-fallback button {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 38px;
+}
+
+.scan-console:has(.scan-error) { flex-wrap: wrap; }
+.scan-console .scan-error { flex-basis: 100%; margin: 2px 0 0; line-height: 1.5; }
+
+/* The WebGL surface owns empty-space gestures. HTML labels stay above it. */
+.universe-renderer { z-index: 0; }
+.universe-orb-labels { z-index: 6; }
+.universe-orb-labels .universe-html-anchor button { pointer-events: auto; }

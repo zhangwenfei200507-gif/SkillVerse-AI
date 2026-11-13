@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-installation-cancel"
+description = "Enables the installation_cancel command without any pre-configured scope."
+commands.allow = ["installation_cancel"]
+
+[[permission]]
+identifier = "deny-installation-cancel"
+description = "Denies the installation_cancel command without any pre-configured scope."
+commands.deny = ["installation_cancel"]

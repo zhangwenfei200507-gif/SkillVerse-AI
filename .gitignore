@@ -63,3 +63,21 @@ settings.local.*
 *.p12
 id_rsa
 id_ed25519
+
+# Keep private development evidence and test sources local.
+/AGENTS.md
+/GLOSSARY.md
+/docs/
+/app/e2e/
+/app/playwright.config.ts
+/app/scripts/
+/app/src/test/
+/app/src/**/*.test.*
+/app/src/**/*.spec.*
+/app/src-tauri/src/**/tests.rs
+/app/x.name))
+/assets/
+/app/src-tauri/examples/
+/.github/
+/app/.taste-skill/
+/app/src/assets/

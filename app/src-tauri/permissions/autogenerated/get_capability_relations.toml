@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-capability-relations"
+description = "Enables the get_capability_relations command without any pre-configured scope."
+commands.allow = ["get_capability_relations"]
+
+[[permission]]
+identifier = "deny-get-capability-relations"
+description = "Denies the get_capability_relations command without any pre-configured scope."
+commands.deny = ["get_capability_relations"]

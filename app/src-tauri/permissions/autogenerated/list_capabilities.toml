@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-capabilities"
+description = "Enables the list_capabilities command without any pre-configured scope."
+commands.allow = ["list_capabilities"]
+
+[[permission]]
+identifier = "deny-list-capabilities"
+description = "Denies the list_capabilities command without any pre-configured scope."
+commands.deny = ["list_capabilities"]

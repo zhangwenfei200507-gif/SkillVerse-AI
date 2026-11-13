@@ -1,0 +1,43 @@
+[package]
+name = "skillverse-ai"
+version = "0.1.0"
+description = "Local-first Codex capability explorer"
+authors = ["SkillVerse AI"]
+license = "UNLICENSED"
+repository = ""
+edition = "2024"
+rust-version = "1.90"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "skillverse_ai_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "2.12.5", features = [] }
+sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite", "macros"] }
+toml = "1.1.8"
+toml_edit = { version = "=0.25.17", features = ["serde"] }
+uuid = { version = "=1.29.0", features = ["v4"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["json", "query", "native-tls"] }
+tokio = { version = "=1.54.1", features = ["sync", "time", "macros", "net", "io-util"] }
+sha2 = "=0.10.9"
+sha1 = "=0.10.6"
+base64 = "=0.22.1"
+regex = "=1.13.1"
+yaml-rust2 = { version = "=0.13.0", default-features = false }
+httpdate = "=1.0.3"
+chrono = { version = "=0.4.45", default-features = false, features = ["std"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Security_Credentials", "Win32_Foundation", "Win32_Security_Cryptography", "Win32_Security_Cryptography_Catalog", "Win32_Security_Cryptography_Sip", "Win32_Security_WinTrust", "Win32_Storage_FileSystem", "Win32_System_Memory", "Win32_System_Threading", "Win32_System_JobObjects"] }
+
+# SQLx 0.8.6 with its SQLite FFI bound updated for RUSTSEC-2026-0459.
+[patch.crates-io]
+sqlx-sqlite = { path = "vendor/sqlx-sqlite" }

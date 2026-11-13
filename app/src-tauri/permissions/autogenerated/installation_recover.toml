@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-installation-recover"
+description = "Enables the installation_recover command without any pre-configured scope."
+commands.allow = ["installation_recover"]
+
+[[permission]]
+identifier = "deny-installation-recover"
+description = "Denies the installation_recover command without any pre-configured scope."
+commands.deny = ["installation_recover"]

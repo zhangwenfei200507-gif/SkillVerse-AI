@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-capability-reconciliation-apply"
+description = "Enables the capability_reconciliation_apply command without any pre-configured scope."
+commands.allow = ["capability_reconciliation_apply"]
+
+[[permission]]
+identifier = "deny-capability-reconciliation-apply"
+description = "Denies the capability_reconciliation_apply command without any pre-configured scope."
+commands.deny = ["capability_reconciliation_apply"]

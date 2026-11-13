@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skillverse/task-understanding/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "goalSummary", "taskIntents", "operations", "requiredCapabilities", "dependencies", "riskLevel", "requiresApproval", "acceptanceCriteria", "verification", "source"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "goalSummary": {"type": "string", "minLength": 1, "maxLength": 300},
+    "taskIntents": {"type": "array", "items": {"enum": ["metadata", "frontend", "browser_testing", "documents", "github", "data", "backend", "unclear"]}, "maxItems": 8},
+    "operations": {"type": "array", "items": {"enum": ["analyze", "modify", "test", "external_change", "report"]}, "uniqueItems": true, "maxItems": 5},
+    "requiredCapabilities": {"type": "array", "items": {"type": "string"}, "uniqueItems": true, "maxItems": 3},
+    "dependencies": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": {"before": {"type": "string"}, "after": {"type": "string"}}}},
+    "riskLevel": {"enum": ["LOW", "MEDIUM", "HIGH"]},
+    "requiresApproval": {"const": true},
+    "acceptanceCriteria": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 8},
+    "verification": {"const": "NOT_EXECUTED"},
+    "source": {"const": "BOUNDED_RULES_WITH_VALIDATED_CAPABILITY_ADVICE"}
+  }
+}

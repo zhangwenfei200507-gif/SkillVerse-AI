@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-capability-intelligence"
+description = "Enables the capability_intelligence command without any pre-configured scope."
+commands.allow = ["capability_intelligence"]
+
+[[permission]]
+identifier = "deny-capability-intelligence"
+description = "Denies the capability_intelligence command without any pre-configured scope."
+commands.deny = ["capability_intelligence"]

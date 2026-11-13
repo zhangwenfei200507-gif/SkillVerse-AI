@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-installation-state"
+description = "Enables the installation_state command without any pre-configured scope."
+commands.allow = ["installation_state"]
+
+[[permission]]
+identifier = "deny-installation-state"
+description = "Denies the installation_state command without any pre-configured scope."
+commands.deny = ["installation_state"]

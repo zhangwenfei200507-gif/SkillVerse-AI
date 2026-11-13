@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-workflow-engine"
+description = "Enables the workflow_engine command without any pre-configured scope."
+commands.allow = ["workflow_engine"]
+
+[[permission]]
+identifier = "deny-workflow-engine"
+description = "Denies the workflow_engine command without any pre-configured scope."
+commands.deny = ["workflow_engine"]
