@@ -81,3 +81,4 @@ id_ed25519
 /.github/
 /app/.taste-skill/
 /app/src/assets/
+/app/src-tauri/vendor/sqlx-sqlite/src/testing/
