@@ -54,3 +54,66 @@
 }
 .mission-reviewed-scope details[open] { border-bottom-color: #7ba5cd66; }
 .compatibility-network small { color: #abc8e2; }
+
+.skillverse-workspace .mission-control {
+  z-index: 28;
+  inset: var(--studio-top) 0 0 var(--studio-rail);
+  display: block;
+  margin: 0;
+  padding: clamp(16px, 2.4vw, 38px);
+  border: 0;
+  border-radius: 0;
+  background: var(--studio-base);
+  color: var(--studio-ink);
+  box-shadow: none;
+}
+.skillverse-workspace .mission-header {
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--studio-edge);
+}
+.skillverse-workspace .mission-header h1 {
+  color: var(--studio-ink);
+  font: 630 clamp(25px, 3.3vw, 49px)/1.06 var(--display);
+  letter-spacing: -.045em;
+}
+.skillverse-workspace .mission-header h1 svg { color: var(--studio-accent); }
+.skillverse-workspace .mission-header p { margin: 9px 0 0; color: var(--studio-text); }
+.skillverse-workspace .mission-control button { background: var(--studio-raised); border-color: #3c4057; color: var(--studio-text); box-shadow: none; border-radius: 7px; }
+.skillverse-workspace .mission-control button:not(:disabled):hover { background: #2e2848; color: var(--studio-ink); box-shadow: none; }
+.skillverse-workspace .mission-control button.mission-primary { border-color: var(--studio-accent) !important; background: var(--studio-accent) !important; color: var(--studio-accent-fg); font-weight: 650; }
+.skillverse-workspace .mission-composer { padding: 16px; border: 1px solid var(--studio-edge); border-radius: 10px; background: var(--studio-panel); }
+.skillverse-workspace .mission-control :is(input:not([type=checkbox]), select, textarea) { border-color: #3c4057; background: #0d1020; color: var(--studio-ink); }
+.skillverse-workspace .mission-grid { gap: 13px; }
+.skillverse-workspace .mission-canvas { background: #0e1220; border-color: var(--studio-edge); border-radius: 10px; }
+.skillverse-workspace .mission-inspector { padding: 14px 15px; background: var(--studio-panel); border: 1px solid var(--studio-edge); border-radius: 10px; }
+.skillverse-workspace .mission-node { border-radius: 10px; background: #181e31; box-shadow: none; }
+.skillverse-workspace .mission-node.mission-core { background: #28223e; }
+.skillverse-workspace .mission-node.node-selected { box-shadow: 0 0 0 2px #baa7ef50; border-color: #c4b6ff; }
+.skillverse-workspace .mission-empty { flex-direction: column; text-align: center; }
+.skillverse-workspace .mission-empty-core { border-radius: 16px; background: #2a2642; box-shadow: none; color: var(--studio-accent); }
+.mission-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  max-width: 1000px;
+  min-height: 320px;
+  gap: 18px;
+  margin-block: 24px;
+}
+.mission-preview-summary, .mission-preview-steps { padding: clamp(18px, 2.4vw, 33px); border: 1px solid var(--studio-edge); border-radius: 12px; background: var(--studio-panel); }
+.mission-preview-summary { display: flex; align-items: flex-start; flex-direction: column; justify-content: center; background: linear-gradient(122deg, #221d38, #141727 75%); }
+.mission-preview-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 10px; border: 1px solid #695889; background: #352a50; color: #d3c6ff; }
+.mission-preview h2 { color: var(--studio-ink); font: 620 clamp(22px, 2.8vw, 37px)/1.12 var(--display); letter-spacing: -.035em; margin: 15px 0 0; }
+.mission-preview p { margin: 6px 0 0; color: var(--studio-text); }
+.mission-preview-status { display: inline-flex; margin-top: 18px; padding: 3px 8px; border: 1px solid #645a70; border-radius: 5px; color: #eee3f7; background: #362d43; font-size: 11px; }
+.mission-preview-steps { display: flex; flex-direction: column; justify-content: center; list-style: none; margin: 0; }
+.mission-preview-steps li { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 12px; padding: 14px 0; }
+.mission-preview-steps li + li { border-top: 1px solid var(--studio-edge); }
+.mission-preview-steps li > span { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #574e73; border-radius: 50%; color: var(--studio-accent); font-size: 11px; }
+.mission-preview-steps strong { color: var(--studio-ink); }
+.mission-preview-steps p { font-size: 13px; }
+.skillverse-workspace .mission-footer { margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--studio-edge); color: var(--studio-muted); }
+@media (max-width: 760px) {
+  .skillverse-workspace .mission-control { top: 91px; }
+  .mission-preview { grid-template-columns: minmax(0, 1fr); }
+  .skillverse-workspace .mission-header-actions { justify-content: flex-end; }
+}
