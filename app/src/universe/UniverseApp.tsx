@@ -4,7 +4,7 @@ import {LearningWorkbench} from './LearningWorkbench'
 import type { InstallOperation } from '../data/installationManager'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import { isTauri } from '@tauri-apps/api/core'
-import { ArrowLeft, ArrowUpRight, BookOpen, Box, ChevronRight, Compass, Database, Expand, Eye, Focus, GitBranch, GraduationCap, Layers3, Maximize2, Minus, Orbit, Plus, RefreshCw, RotateCcw, Search, Settings2, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, Box, ChevronRight, Compass, Database, Expand, Eye, Focus, GitBranch, GraduationCap, List, Maximize2, Minus, Orbit, Plus, RefreshCw, RotateCcw, Search, Settings2, ShieldCheck, Workflow, X } from 'lucide-react'
 import { catalog, discoveryCategories, discoveryVerifiedAt, type CatalogItem } from '../domain/catalog'
 import { checkDesktopDatabase, createDesktopDatabaseBackup, loadDesktopCatalog, loadDesktopCodexScan, loadDesktopLearningProgress, saveDesktopLearningProgress, saveDesktopPracticeEvidence, scanDesktopCodex, type CodexScanReport, type StoredLearningRecord } from '../data/desktopDatabase'
 import { belongsToFunction, buildCapabilities, buildWorldNodes, capabilityKinds, functionLabels, typeLabels, matches, orbitalNodes, readPositions, stageNames, stateLabels, storePositions, type Capability, type CapabilityKind, type Positions, type ScenePage, type SpatialNode } from './model'
@@ -16,17 +16,20 @@ import ModelRegistryPanel from './ModelRegistryPanel'
 import { constrainColumnMove } from './spatialLayout'
 import './universe.css'
 import './universe-atmosphere.css'
+import './workspace.css'
+import { CapabilityDirectory, TypeIcon } from './WorkspaceParts'
 import { GitHubCapabilityControls, GitHubDiscoveryControls } from './GitHubControls'
 import type { DiscoveryState } from '../data/githubDiscovery'
 const MissionControl = lazy(() => import('./MissionControl'))
 const UniverseEngine = lazy(() => import('./UniverseEngine'))
 const pages: ScenePage[] = ['World Tree', 'Discover', 'Installed', 'Learning', 'Settings']
 const pageIcons = [GitBranch, Compass, Box, GraduationCap, Settings2]
-const sceneTitles: Partial<Record<ScenePage, { title: string; description: string }>> = {
-  Discover: { title: 'Discover', description: 'Explore the capability constellations' },
-  Installed: { title: 'Installed', description: 'Your local Codex ecosystem' },
-  Learning: { title: 'Learning universe', description: 'Follow the path from exploration to mastery' },
-  Settings: { title: 'Universe settings', description: 'Display, integration and local data' },
+const sceneDescriptions: Record<ScenePage, string> = {
+  'World Tree': 'Find the right capability for a Codex task.',
+  Discover: 'Browse source-backed capabilities by the work they help you do.',
+  Installed: 'Inspect the capabilities observed in your local Codex environment.',
+  Learning: 'Build a practice path and keep evidence for each step.',
+  Settings: 'Manage display preferences, local data and AI providers.',
 }
 const defaults: UniverseSettings = { quality: 'balanced', density: .75, motion: .45, reducedMotion: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, restoreScan: true, autoScan: false, nebula: true, bloom: .4, stars: true, particles: true, rendering: 'auto' }
 function loadSettings(): UniverseSettings {
@@ -47,6 +50,7 @@ function loadSettings(): UniverseSettings {
 export default function UniverseApp() {
   const desktop = isTauri()
   const [page, setPage] = useState<ScenePage>('World Tree')
+  const workspace = useRef<HTMLElement>(null)
   const [missionOpen,setMissionOpen]=useState(false)
   const [items, setItems] = useState<CatalogItem[]>(desktop ? [] : catalog)
   const [githubState, setGithubState] = useState<DiscoveryState | null>(null)
@@ -77,6 +81,7 @@ export default function UniverseApp() {
   const [query, setQuery] = useState('')
   const deferredQuery = useDeferredValue(query)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [collectionView, setCollectionView] = useState<'directory' | 'atlas'>('directory')
   const searchInput = useRef<HTMLInputElement>(null)
   const searchResults = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(new Set<string>())
@@ -210,7 +215,7 @@ export default function UniverseApp() {
     return [{ ...core, position: [-5.5, -.3, -2.5] }]
   }, [page, worldNodes, local, scenePool, vaultType, functionCategory, collectionIsLeaf, selectedCapability?.learningStatus, selectedEntityId, learningViews])
   const selectedNode = nodes.find((node) => node.id === selectedId)
-  const changePage = (next: ScenePage) => { slowSamples.current = 0; setPage(next); setQuery(''); setSearchOpen(false); setVaultType(null); setFunctionCategory(null); setFocus(false); setDetails(true); setSelectedId('codex-root'); setZoom(1); setFitToken((v) => v + 1) }
+  const changePage = (next: ScenePage) => { slowSamples.current = 0; setPage(next); setCollectionView('directory'); setQuery(''); setSearchOpen(false); setVaultType(null); setFunctionCategory(null); setFocus(false); setDetails(true); setSelectedId('codex-root'); setZoom(1); setFitToken((v) => v + 1) }
   const locateCapability = (capability: Capability, keepQuery = false) => {
     setMissionOpen(false)
     if (!keepQuery) changePage('World Tree')
@@ -299,87 +304,223 @@ export default function UniverseApp() {
     }
     setSettings((old) => ({ ...old, [key]: value }))
   }
-  const sceneTitle = functionCategory ? undefined : sceneTitles[page]
+  useEffect(() => {
+    if (focus || missionOpen || (page !== 'World Tree' && page !== 'Discover' && page !== 'Installed')) return
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchInput.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', focusSearch)
+    return () => window.removeEventListener('keydown', focusSearch)
+  }, [focus, missionOpen, page])
+
+  const collection = page === 'Discover' || page === 'Installed'
+  const mapVisible = page === 'World Tree' || page === 'Settings' && settingsTab === 'Display' || collection && collectionView === 'atlas'
+  const atlasView = page === 'World Tree' || collection && collectionView === 'atlas'
+  const selectedItem = selectedCapability && selectedId === selectedCapability.id ? selectedCapability : undefined
+  const directoryNodes = nodes.filter(node => node.kind !== 'core')
+  const heading = functionCategory ? vaultType ? typeLabels[vaultType as CapabilityKind] : functionLabels[functionCategory] : page
+  useEffect(() => { if (workspace.current) workspace.current.scrollTop = 0 }, [page, missionOpen])
+  const browse = (next: ScenePage) => { setMissionOpen(false); changePage(next) }
+  const back = () => { if (vaultType) setVaultType(null); else setFunctionCategory(null); setSelectedId('codex-root'); setQuery('') }
+  const chooseStage = (index: number) => { setStage(index); setSelectedId('stage:' + index) }
+  const search = <div className="workspace-search-wrap">
+    <div className="spatial-search" role="search">
+      <Search size={17} aria-hidden="true" />
+      <input ref={searchInput} aria-label="Search capabilities" aria-controls={searchVisible ? 'capability-search-results' : undefined} placeholder={page === 'Installed' ? 'Search local inventory' : 'Search capabilities'} value={query}
+        onClick={() => { if (query.trim()) setSearchOpen(true) }}
+        onChange={event => { setQuery(event.target.value); setSearchOpen(true) }}
+        onKeyDown={event => {
+          if (page !== 'World Tree' || !query.trim()) return
+          if (event.key === 'Escape') { event.preventDefault(); setSearchOpen(false) }
+          else if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            if (searchOpen) focusSearchResult(0)
+            else { setSearchOpen(true); requestAnimationFrame(() => focusSearchResult(0)) }
+          } else if (event.key === 'Enter' && searchMatches[0]) {
+            event.preventDefault()
+            locateCapability(searchMatches[0], true)
+          }
+        }}
+      />
+      {query ? <button aria-label="Clear search" onClick={() => { searchInput.current?.focus(); setQuery('') }}><X size={15} /></button> : <kbd>Ctrl K</kbd>}
+    </div>
+  </div>
+
   const allDiagnostics = [...new Set([...diagnostics, ...(scan?.warnings ?? []),...pendingOperations.map(op=>'Interrupted installation operation '+op.id+'. Review its source to recover safely.')])]
-  return <main className={'universe-app ' + (focus ? 'is-focused' : '')} data-scene={page} data-motion={settings.reducedMotion || settings.motion === 0 ? 'reduced' : 'full'} data-mission-open={missionOpen} data-render-engine={use2d ? 'accessible-2d' : 'react-three-fiber'} data-render-mode={use2d ? '2d' : reducedQuality ? 'low' : '3d'} data-starfield="drei-stars-sparkles" data-active-stars={metrics?.stars ?? 0} data-active-sparkles={metrics?.sparkles ?? 0} data-render-fps={metrics?.fps ?? 0} data-frame-p95={metrics?.p95 ?? 0} data-gpu-geometries={metrics?.geometries ?? 0} data-gpu-textures={metrics?.textures ?? 0} data-render-calls={metrics?.calls ?? 0} data-render-triangles={metrics?.triangles ?? 0} data-webgl-version={metrics?.renderer ?? ''} data-local-count={local.length} data-discovery-count={candidates.length} data-visible-nodes={nodes.length} data-cosmic-layers={metrics?.cosmic?.layers ?? 0} data-nebula-technique={metrics?.cosmic?.nebulaTechnique ?? ""} data-nebula-steps={metrics?.cosmic?.steps ?? 0} data-luminous-stars={metrics?.cosmic?.luminousStars ?? 0} data-foreground-particles={metrics?.cosmic?.foreground ?? 0} data-star-depth-span={metrics?.cosmic?.depthSpan ?? 0} data-nebula-buffer={JSON.stringify(metrics?.cosmic?.bufferSize ?? [])} data-star-probes={JSON.stringify(metrics?.cosmic?.probes ?? [])} data-bloom-enabled={metrics?.bloom ?? false}>
-    <div style={{display:'contents'}} inert={missionOpen}>{use2d ? <UniverseFallback nodes={nodes} onSelect={select} message="Lightweight 2D mode. Select any visible capability below."/> : <Suspense fallback={<div className="universe-loading">Opening your universe…</div>}><UniverseEngine page={page} nodes={nodes} selectedId={selectedId} positions={positions} settings={reducedQuality ? { ...settings, quality: 'low' } : settings} focus={focus} background={missionOpen} zoom={zoom} fitToken={fitToken} pulseToken={pulseToken} onSelect={select} onMove={move} onMetrics={reportMetrics} /></Suspense>}</div>
-    {guideStep !== null && <FirstRun initialStep={guideStep} codexDetected={startup?.codexCliOnPath ?? null} onClose={closeGuide}/>}
-    <div className="universe-vignette" aria-hidden="true" />
-    {missionOpen&&<Suspense fallback={<div className="universe-loading">Opening Mission Control…</div>}><MissionControl reducedMotion={settings.reducedMotion||settings.motion===0} preferredCapability={selectedCapability && (selectedCapability.logicalId ?? 'logical:github:' + selectedCapability.entityId)} onClose={()=>setMissionOpen(false)} onLocate={id=>{const cap=capabilities.find(c=>(c.logicalId??('logical:github:'+c.entityId))===id);if(cap)locateCapability(cap)}} onLearn={id=>{const cap=capabilities.find(c=>(c.logicalId??('logical:github:'+c.entityId))===id);if(cap){setMissionOpen(false);setSelectedCapabilityId(cap.id);changePage('Learning')}}}/></Suspense>}
-    {!focus && <header className="universe-nav"><button className="universe-brand" onClick={() => changePage('World Tree')} aria-label="SkillVerse home"><span><Orbit size={25} /></span><div><strong>SkillVerse</strong><small>Codex capability universe</small></div></button><nav aria-label="Main navigation">{pages.map((item, index) => { const Icon = pageIcons[index]; return <button key={item} aria-label={item} aria-current={!missionOpen && page === item ? 'page' : undefined} onClick={() => {setMissionOpen(false);changePage(item)}}><Icon size={17} /><span>{item}</span></button> })}<button aria-label="Mission Control" aria-current={missionOpen?'page':undefined} onClick={()=>setMissionOpen(true)}><GitBranch size={17}/><span>Mission Control</span></button></nav><span className="universe-connection"><i className={scan ? 'ready' : ''} />{desktop ? 'Local Codex' : 'Browser preview'}</span></header>}
-    <div style={{display:'contents',visibility:missionOpen?'hidden':undefined}} inert={missionOpen} aria-hidden={missionOpen}>
-    {!focus && <div className="spatial-toolbar"><div className="spatial-breadcrumb"><span>Universe</span><ChevronRight size={12} /><strong>{page}</strong>{(page === 'Discover' || page === 'Installed') && functionCategory && <><ChevronRight size={12} /><span>{functionLabels[functionCategory]}</span>{vaultType && <><ChevronRight size={12} /><strong>{typeLabels[vaultType as CapabilityKind]}</strong></>}</>}</div>{sceneTitle && <div className="scene-title"><h1>{sceneTitle.title}</h1><p>{sceneTitle.description}</p></div>}{page !== "Learning" && page !== "Settings" && <div className="spatial-tools"><label className="spatial-search"><Search size={16} /><input ref={searchInput} aria-label="Search capabilities" aria-controls={searchVisible ? 'capability-search-results' : undefined} placeholder="Find a capability…" value={query} onChange={(event) => { setQuery(event.target.value); setSearchOpen(true) }} onKeyDown={(event) => {
-        if (page !== 'World Tree' || !query.trim()) return
-        if (event.key === 'Escape') { event.preventDefault(); setSearchOpen(false) }
-        else if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          if (searchOpen) focusSearchResult(0)
-          else { setSearchOpen(true); requestAnimationFrame(() => focusSearchResult(0)) }
-        } else if (event.key === 'Enter' && searchMatches[0]) {
-          event.preventDefault()
-          locateCapability(searchMatches[0], true)
-        }
-      }} />{query && <button aria-label="Clear search" onClick={() => setQuery('')}><X size={13} /></button>}</label>
-      {(page === 'Discover' || page === 'Installed') && functionCategory && <button className="vault-back" onClick={() => { if (vaultType) setVaultType(null); else setFunctionCategory(null); setSelectedId('codex-root'); setQuery('') }}><ArrowLeft size={13} />{vaultType ? 'Back to types' : 'All categories'}</button>}
-      {page === 'Discover' && collectionIsLeaf && <label className="discovery-sort"><span>Order</span><select aria-label="Sort discoveries" value={discoverySort} onChange={(event) => setDiscoverySort(event.target.value)}><option value="recommended">Curated</option><option value="stars">Repository stars</option><option value="recent">Recently maintained</option></select></label>}
-    </div>}</div>}
-    {page === 'World Tree' && !focus && <div className="tree-actions"><button onClick={() => { setAllMode(!allMode); setExpanded(allMode ? new Set() : new Set(Object.keys(functionLabels))); setClusters(new Set()); setSelectedId('codex-root'); setFitToken((v) => v + 1) }}><Expand size={16} />{allMode ? 'Collapse All' : 'Expand All'}</button><button title="Restore visible node positions and fit the view. Expanded branches stay open. Previous positions can be restored." onClick={resetLayout}><RotateCcw size={15} />Reset Layout</button>{layoutSnapshot && <button onClick={() => { const saved = updatePositions(layoutSnapshot, true); setLayoutSnapshot(null); setFitToken((v) => v + 1); setLayoutNotice(saved ? 'Previous node positions restored.' : 'Previous positions restored for this session.') }}>Restore previous layout</button>}<button onClick={() => setFocus(true)}><Focus size={16} />Focus Mode</button></div>}
-    {!focus && page === 'World Tree' && layoutNotice && <div className="layout-notice" role="status">{layoutNotice}<button aria-label="Dismiss layout notice" onClick={() => setLayoutNotice('')}><X size={12} /></button></div>}
-    {focus && <button className="exit-focus" onClick={() => setFocus(false)}><ArrowLeft size={16} />Exit focus <kbd>Esc</kbd></button>}
-    {!focus && searchVisible && <div id="capability-search-results" ref={searchResults} className="search-palette" aria-label="Capability search results">
-      <p role="status">{searchMatches.length ? searchMatches.length + ' matching capabilities' : 'No capabilities match this search.'}</p>
-      {searchMatches.map((item, index) => <button key={item.id} onClick={() => { locateCapability(item, true); searchInput.current?.focus() }} onKeyDown={(event) => {
-        if (event.key === 'Escape' || event.key === 'ArrowUp' && index === 0) {
-          event.preventDefault()
-          if (event.key === 'Escape') setSearchOpen(false)
-          searchInput.current?.focus()
-        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-          event.preventDefault()
-          focusSearchResult(index + (event.key === 'ArrowDown' ? 1 : -1))
-        }
-      }}><span>{item.name}</span><small>{item.origin === 'local' ? 'Local' : 'Discover'}</small></button>)}
+  return <main ref={workspace} className={'universe-app skillverse-workspace ' + (focus ? 'is-focused' : '')} data-scene={page} data-motion={settings.reducedMotion || settings.motion === 0 ? 'reduced' : 'full'} data-mission-open={missionOpen} data-render-engine={use2d ? 'accessible-2d' : 'react-three-fiber'} data-render-mode={use2d ? '2d' : reducedQuality ? 'low' : '3d'} data-starfield="drei-stars-sparkles" data-active-stars={metrics?.stars ?? 0} data-active-sparkles={metrics?.sparkles ?? 0} data-render-fps={metrics?.fps ?? 0} data-frame-p95={metrics?.p95 ?? 0} data-gpu-geometries={metrics?.geometries ?? 0} data-gpu-textures={metrics?.textures ?? 0} data-render-calls={metrics?.calls ?? 0} data-render-triangles={metrics?.triangles ?? 0} data-webgl-version={metrics?.renderer ?? ''} data-local-count={local.length} data-discovery-count={candidates.length} data-visible-nodes={nodes.length} data-cosmic-layers={metrics?.cosmic?.layers ?? 0} data-nebula-technique={metrics?.cosmic?.nebulaTechnique ?? ""} data-nebula-steps={metrics?.cosmic?.steps ?? 0} data-luminous-stars={metrics?.cosmic?.luminousStars ?? 0} data-foreground-particles={metrics?.cosmic?.foreground ?? 0} data-star-depth-span={metrics?.cosmic?.depthSpan ?? 0} data-nebula-buffer={JSON.stringify(metrics?.cosmic?.bufferSize ?? [])} data-star-probes={JSON.stringify(metrics?.cosmic?.probes ?? [])} data-bloom-enabled={metrics?.bloom ?? false}>
+    {!focus && <header className="universe-nav workspace-nav">
+      <button className="universe-brand" onClick={() => browse('World Tree')} aria-label="SkillVerse home">
+        <span><Orbit size={21} aria-hidden="true" /></span><strong>SkillVerse</strong>
+      </button>
+      <nav aria-label="Main navigation">
+        {pages.slice(0, 4).map((item, index) => {
+          const Icon = pageIcons[index]
+          return <button key={item} aria-label={item} aria-current={!missionOpen && page === item ? 'page' : undefined} onClick={() => browse(item)}><Icon size={18} aria-hidden="true" /><span>{item}</span></button>
+        })}
+        <button aria-label="Mission Control" aria-current={missionOpen ? 'page' : undefined} onClick={() => setMissionOpen(true)}><Workflow size={18} aria-hidden="true" /><span>Mission Control</span></button>
+        <button aria-label="Settings" aria-current={!missionOpen && page === 'Settings' ? 'page' : undefined} onClick={() => browse('Settings')}><Settings2 size={18} aria-hidden="true" /><span>Settings</span></button>
+      </nav>
+      <span className="universe-connection"><i className={scan ? 'ready' : ''} aria-hidden="true" />{desktop ? scan ? 'Scan available' : 'Scan pending' : 'Catalog browsing'}</span>
+    </header>}
+    {!focus && <div className="workspace-topline">
+      <span>Workspace <ChevronRight size={13} aria-hidden="true" /> <strong>{missionOpen ? 'Mission Control' : page}</strong></span>
+      <span className="workspace-origin">{desktop ? 'Local Codex' : 'Browser preview'}</span>
     </div>}
-    {!focus && page === 'Settings' && <section className="display-telemetry" aria-label="Display status">
-      <span className="display-telemetry-icon" aria-hidden="true"><Orbit size={30} /></span>
-      <div><h2>{use2d ? 'Lightweight 2D' : reducedQuality ? 'Performance 3D' : 'Universe display'}</h2>
-        <p>{use2d ? 'Capability navigation is available in 2D.' : 'Your display settings apply to the shared universe.'}</p>
-        <dl><div><dt>Local data</dt><dd>{database}</dd></div><div><dt>Star field</dt><dd>{use2d ? '2D' : metrics ? metrics.stars.toLocaleString() + ' active stars' : 'Measuring'}</dd></div></dl>
+    <div className={'workspace-view' + (atlasView ? ' has-atlas' : '') + (details && (atlasView || collection) ? ' has-inspector' : '') + (page === 'Settings' ? ' workspace-settings' : '') + (page === 'Learning' ? ' workspace-learning' : '')}
+      style={{ visibility: missionOpen ? 'hidden' : undefined }} inert={missionOpen} aria-hidden={missionOpen}>
+      {!focus && <header className="workspace-title">
+        <div><h1>{page}</h1><p>{sceneDescriptions[page]}</p></div>
+        <div className="workspace-title-actions">
+          {collection && <div className="workspace-view-switch" aria-label="Collection view">
+            <button aria-pressed={collectionView === 'directory'} onClick={() => setCollectionView('directory')}><List size={15} aria-hidden="true" />Directory</button>
+            <button aria-pressed={collectionView === 'atlas'} onClick={() => { setCollectionView('atlas'); setFitToken(v => v + 1) }}><Orbit size={15} aria-hidden="true" />Atlas</button>
+          </div>}
+          {!details && (atlasView || collection) && <button className="workspace-button" onClick={() => setDetails(true)}><Eye size={16} />Inspector</button>}
+        </div>
+      </header>}
+
+      {!focus && atlasView && <section className="workspace-index" aria-label="Capability index">
+        <h2>{page === 'World Tree' ? 'Browse the tree' : heading}</h2>
+        {search}
+        {collection && functionCategory && <button className="workspace-directory-back" onClick={back}><ArrowLeft size={14} />{vaultType ? 'Back to types' : 'All categories'}</button>}
+        {page === 'Discover' && collectionIsLeaf && <label className="discovery-sort"><span>Order</span><select aria-label="Sort discoveries" value={discoverySort} onChange={event => setDiscoverySort(event.target.value)}><option value="recommended">Curated</option><option value="stars">Repository stars</option><option value="recent">Recently maintained</option></select></label>}
+        {page === 'World Tree' && searchVisible ? <div id="capability-search-results" ref={searchResults} className="workspace-search-results" aria-label="Capability search results">
+          <p role="status">{searchMatches.length ? searchMatches.length + ' matching capabilities' : 'No capabilities match this search.'}</p>
+          {searchMatches.map((item, index) => <button key={item.id} onClick={() => { searchInput.current?.focus(); locateCapability(item, true) }} onKeyDown={event => {
+            if (event.key === 'Escape' || event.key === 'ArrowUp' && index === 0) {
+              event.preventDefault()
+              searchInput.current?.focus()
+              if (event.key === 'Escape') setSearchOpen(false)
+            } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
+              focusSearchResult(index + (event.key === 'ArrowDown' ? 1 : -1))
+            }
+          }}><TypeIcon kind={item.kind} /><span>{item.name}<small>{item.origin === 'local' ? 'Local' : 'Discovery'} / {item.kind}</small></span><ChevronRight size={15} aria-hidden="true" /></button>)}
+        </div> : <CapabilityDirectory compact nodes={directoryNodes} label={page === 'World Tree' ? 'World Tree branches' : page === 'Discover' ? 'Discovery directory' : 'Local capability directory'} prefix={page === 'Installed' ? 'Open' : 'Browse'} selected={selectedId} onSelect={select} />}
+      </section>}
+
+      <div className={'workspace-map' + (mapVisible ? '' : ' map-parked')} inert={!mapVisible} aria-hidden={!mapVisible}>
+        <div className="workspace-scene" aria-label="Capability atlas">
+          {use2d ? <UniverseFallback nodes={nodes} selectedId={selectedId} onSelect={select} message="Lightweight 2D mode. Select any visible capability below." /> :
+            <Suspense fallback={<div className="universe-loading">Opening your atlas…</div>}>
+              <UniverseEngine page={page} nodes={nodes} selectedId={selectedId} positions={positions} settings={reducedQuality ? { ...settings, quality: 'low' } : settings} focus={focus} background={missionOpen || !mapVisible} zoom={zoom} fitToken={fitToken} pulseToken={pulseToken} onSelect={select} onMove={move} onMetrics={reportMetrics} />
+            </Suspense>}
+          <div className="universe-vignette" aria-hidden="true" />
+        </div>
+        {!focus && atlasView && <div className="atlas-caption"><span><span aria-hidden="true" />{page === 'World Tree' ? 'Capability atlas' : heading}</span><span>{nodes.length - 1} visible nodes</span></div>}
+        {atlasView && !use2d && <div className="universe-zoom" title="Drag to pan. Right-drag to rotate. Scroll to zoom.">
+          <button aria-label="Zoom out" onClick={() => setZoom(v => Math.max(.35, v - .15))}><Minus size={16} /></button><span>{Math.round(zoom * 100)}%</span>
+          <button aria-label="Zoom in" onClick={() => setZoom(v => Math.min(2, v + .15))}><Plus size={16} /></button>
+          <button aria-label="Fit View" title="Fit View: adjust camera only" onClick={() => { setZoom(1); setFitToken(v => v + 1) }}><Maximize2 size={16} /></button>
+        </div>}
+        {!focus && page === 'World Tree' && <div className="tree-actions">
+          <button onClick={() => { setAllMode(!allMode); setExpanded(allMode ? new Set() : new Set(Object.keys(functionLabels))); setClusters(new Set()); setSelectedId('codex-root'); setFitToken(v => v + 1) }}><Expand size={15} />{allMode ? 'Collapse All' : 'Expand All'}</button>
+          <button title="Restore visible node positions and fit the view. Expanded branches stay open. Previous positions can be restored." onClick={resetLayout}><RotateCcw size={14} />Reset Layout</button>
+          {layoutSnapshot && <button onClick={() => { const saved = updatePositions(layoutSnapshot, true); setLayoutSnapshot(null); setFitToken(v => v + 1); setLayoutNotice(saved ? 'Previous node positions restored.' : 'Previous positions restored for this session.') }}>Restore previous layout</button>}
+          <button onClick={() => setFocus(true)}><Focus size={15} />Focus Mode</button>
+        </div>}
+        {!focus && page === 'World Tree' && layoutNotice && <div className="layout-notice" role="status">{layoutNotice}<button aria-label="Dismiss layout notice" onClick={() => setLayoutNotice('')}><X size={13} /></button></div>}
+        {!focus && atlasView && <div className="atlas-legend" aria-label="Map legend"><span><i className="local-dot" />Local</span><span><i className="candidate-dot" />Discovery</span><span><i className="configured-dot" />Configured / unverified</span></div>}
+        {focus && <button className="exit-focus workspace-button" onClick={() => setFocus(false)}><ArrowLeft size={16} />Exit focus <kbd>Esc</kbd></button>}
       </div>
-    </section>}
-    {!focus && details && <aside className="spatial-pod" aria-label="Capability intelligence"><div className="pod-heading"><div><SparkleMark /><span>{page === 'Settings' ? 'Display & connections' : page === 'Learning' ? 'Learning workspace' : 'Skill Intelligence'}</span></div><button aria-label="Close details" onClick={() => setDetails(false)}><X size={17} /></button></div>
-      {page === 'Settings' ? <SettingsConsole settings={settings} tab={settingsTab} onTab={setSettingsTab} onChange={updateSettings} desktop={desktop} scan={scan} database={database} metrics={metrics} backup={backup} onBackup={() => { setBusy(true); void createDesktopDatabaseBackup().then(setBackup).catch(() => reportError('Verified backup could not be created.')).finally(() => setBusy(false)) }} busy={busy} onGuide={() => setGuideStep(readWelcome()?.step ?? 0)} onDiagnostics={() => setShowDiagnostics(true)} />
-        : page === 'Learning' ? <LearningJourney capability={selectedCapability} capabilities={capabilities} onChoose={(id) => setSelectedCapabilityId(id)} stage={stage} setStage={(index) => { setStage(index); setSelectedId('stage:' + index) }} record={selectedCapability ? learning[selectedCapability.entityId] : undefined} desktop={desktop} busy={busy} onUpdate={updateLearning} onProgress={publishLearningView} onLocate={() => { if (selectedCapability) locateCapability(selectedCapability) }} onRecommendChoose={logicalId=>{const next=capabilities.find(c=>(c.logicalId??('logical:github:'+c.entityId))===logicalId);if(next)setSelectedCapabilityId(next.id)}} />
-        : <>{page === 'Installed' && <div className="scan-console"><div><i className={scan ? 'local-dot' : 'candidate-dot'} />{scan ? 'Last scan · ' + new Date(scan.scannedAtUnixMs).toLocaleString() : 'No local scan yet'}</div><button disabled={!desktop || scanning} onClick={() => void scanAgain()}><RefreshCw size={14} />{scanning ? 'Scanning…' : 'Scan Again'}</button>{scanError && <p role="alert" className="console-error scan-error">{scanError}</p>}</div>}
-        {selectedCapability && selectedId === selectedCapability.id ? <><CapabilityDetails capability={selectedCapability} onInspect={(id)=>{const item=capabilities.find(c=>(c.logicalId??('logical:github:'+c.entityId))===id);if(item)locateCapability(item)}} onLearn={() => changePage('Learning')} onWorld={page !== 'World Tree' ? () => locateCapability(selectedCapability) : undefined} onInstalled={page !== 'Installed' && selectedCapability.origin === 'local' ? () => locateInstalled(selectedCapability) : undefined} onMission={() => setMissionOpen(true)} /><GitHubCapabilityControls key={selectedCapability.id} capability={selectedCapability} onChanged={reloadCatalog} /></>
-          : page === 'Discover' ? <><div className="pod-subject"><Compass size={34} /><div><small>Codex capability discovery</small><h1>{functionCategory ? vaultType ? typeLabels[vaultType as CapabilityKind] : functionLabels[functionCategory] : 'Explore capabilities'}</h1></div></div>
-            <p className="pod-description">{functionCategory ? 'Choose a capability to inspect its source, requirements, and Codex integration.' : 'Explore twenty functional categories and candidates awaiting review. Skills and Plugins share stable identities across categories.'}</p>
-            {!functionCategory && <><div className="discovery-totals"><span><strong>{discoveryCategories.length}</strong>categories</span><span><strong>{candidates.filter((item) => item.kind === 'skill').length}</strong>Skills</span><span><strong>{candidates.filter((item) => item.kind === 'plugin').length}</strong>Plugins</span></div><p className="catalog-note">Counts describe distinct entries. A plugin can serve several categories. Repository stars are shared by its bundled components.</p></>}
-            <GitHubDiscoveryControls onChanged={reloadCatalog} /><div className="discovery-directory" aria-label="Discovery directory">{nodes.filter((node) => node.id !== 'codex-root').map((node) => <button key={node.id} aria-label={'Browse ' + node.name} onClick={() => select(node)}><span>{node.name}<small>{node.capability ? node.capability.item?.repositoryStars !== undefined ? node.capability.item.repositoryStars.toLocaleString() + ' repo stars · setup required' : node.capability.kind : !functionCategory ? candidates.filter((item) => belongsToFunction(item, node.id.slice(9)) && item.kind === 'skill').length + ' Skills · ' + candidates.filter((item) => belongsToFunction(item, node.id.slice(9)) && item.kind === 'plugin').length + ' Plugins' : node.count + ' capabilities'}</small></span><ChevronRight size={15} /></button>)}</div>
-            <p className="catalog-note">Source snapshot checked {new Date(discoveryVerifiedAt).toLocaleDateString()}. GitHub provides no universal component rating. Installation and account access are checked separately.</p></>
-            : page === 'Installed' ? <><div className="pod-subject"><Database size={34} /><div><small>Local capability vault</small><h1>Local Codex</h1></div></div><p className="pod-description">{desktop ? 'Read-only discovery of your actual Skills, MCP configuration, and plugin metadata. Findings are persisted in SQLite.' : 'The browser preview cannot inspect your Codex folders. Open the desktop app to scan.'}</p><div className="vault-types" aria-label="Local capability directory">{nodes.filter((node) => node.kind !== 'core').map((node) => <button key={node.id} aria-label={'Open ' + node.name} onClick={() => select(node)}><span>{node.name}{node.capability && <small>{stateLabels[node.capability.installation]} · {node.capability.kind}</small>}</span><strong>{node.count}</strong><ChevronRight size={13} /></button>)}</div><div className="pod-section"><h2>Codex environment</h2><dl><div><dt>Codex home</dt><dd>{scan ? scan.codexHomeFound ? 'Found' : 'Not found' : 'Not scanned'}</dd></div><div><dt>CLI on PATH</dt><dd>{scan ? scan.cliFoundOnPath ? 'Found' : 'Not found' : 'Not scanned'}</dd></div><div><dt>Storage</dt><dd>{database}</dd></div></dl></div><div className="pod-section"><h2>Truthful states</h2><p>Valid local manifests are marked found. MCP entries remain configured and unverified. No scanned code or server is started.</p></div></>
-              : <><div className="pod-subject"><Orbit size={34} /><div><small>{selectedNode?.kind === 'domain' ? 'Functional category' : selectedNode?.kind === 'cluster' ? 'Capability type' : 'Your capability universe'}</small><h1>{selectedNode?.name ?? 'MY CODEX'}</h1></div></div><p className="pod-description">Explore the neural branches. Each light is a capability with its own source, status, and learning path.</p><div className="source-counts"><span><i className="local-dot" />Local capabilities<strong>{local.length}</strong></span><span><i className="candidate-dot" />Discovery candidates<strong>{candidates.length}</strong></span></div><div className="pod-section"><h2><Layers3 size={17} />Progressive exploration</h2><p>Choose a functional category, then Skills, Plugins, or MCP. One type opens at a time. Its capabilities appear together in the fourth column. Drag empty space to pan through the tree.</p></div><div className="pod-section"><h2><ShieldCheck size={17} />Observed installation state</h2><p>{scan ? 'Local findings restored from the scan. MCP configuration does not verify a running connection.' : 'Scan your local Codex environment to add installed capabilities.'}</p></div><div className="pod-section"><h2><BookOpen size={17} />Learning stays separate</h2><p>Select any capability to begin. Installation and self-reported practice do not imply mastery.</p></div><button className="pod-primary" onClick={() => changePage('Installed')}><Database size={17} />{scan ? 'Open local capability vault' : 'Scan local Codex'}<ArrowUpRight size={16} /></button></>}
+
+      {!focus && collection && !atlasView && <section key={'collection:' + page} className="workspace-main collection-main" aria-label={page + ' workspace'}>
+        {page === 'Discover' ? <div className="workspace-overview discover-overview">
+          <Compass size={28} aria-hidden="true" />
+          <div><h2>Find a capability for your task</h2><p>Explore by category or search across the catalog.</p></div>
+          <dl><div><dt>Categories</dt><dd>{discoveryCategories.length}</dd></div><div><dt>Skills</dt><dd>{candidates.filter(item => item.kind === 'skill').length}</dd></div><div><dt>Plugins</dt><dd>{candidates.filter(item => item.kind === 'plugin').length}</dd></div></dl>
+        </div> : <div className="workspace-overview installed-overview">
+          <Database size={28} aria-hidden="true" />
+          <div><h2>Local Codex inventory</h2><p>{scan ? 'Latest saved observation from your read-only scan.' : desktop ? 'Scan your Codex environment to populate this inventory.' : 'Local observations are available in the desktop app.'}</p></div>
+          <dl><div><dt>Observed</dt><dd>{scan ? local.length : '—'}</dd></div><div><dt>Configured MCP</dt><dd>{scan ? local.filter(item => item.installation === 'configured').length : '—'}</dd></div></dl>
+        </div>}
+        <div className="workspace-directory-heading">
+          <div>{functionCategory && <button className="workspace-directory-back" onClick={back}><ArrowLeft size={14} />{vaultType ? 'Back to types' : 'All categories'}</button>}<h2>{query.trim() ? 'Search results' : functionCategory ? heading : page === 'Discover' ? 'Browse by category' : 'Observed capabilities'}</h2></div>
+          <div className="workspace-directory-tools">{search}{page === 'Discover' && collectionIsLeaf && <label className="discovery-sort"><span>Order</span><select aria-label="Sort discoveries" value={discoverySort} onChange={event => setDiscoverySort(event.target.value)}><option value="recommended">Curated</option><option value="stars">Repository stars</option><option value="recent">Recently maintained</option></select></label>}</div>
+        </div>
+        {directoryNodes.length ? <CapabilityDirectory nodes={directoryNodes} label={page === 'Discover' ? 'Discovery directory' : 'Local capability directory'} prefix={page === 'Discover' ? 'Browse' : 'Open'} selected={selectedId} onSelect={select} /> :
+          <div className="workspace-empty"><Box size={25} aria-hidden="true" /><h3>{query.trim() ? 'No matching capabilities' : !scan ? 'No local scan available' : 'No capabilities found'}</h3><p>{query.trim() ? 'Try a different name, type or task.' : desktop ? 'Run a read-only scan to look for local capabilities.' : 'The browser preview cannot inspect your Codex folders. Open the desktop app to scan.'}</p>{query.trim() && <button className="workspace-button" onClick={() => setQuery('')}>Clear search</button>}</div>}
+        {page === 'Discover' && <p className="catalog-note">Source snapshot checked {new Date(discoveryVerifiedAt).toLocaleDateString()}. Stars describe the source repository.</p>}
+      </section>}
+
+      {!focus && page === 'Learning' && <>
+        <section className="workspace-main workspace-form" aria-label="Learning journey">
+          <LearningJourney capability={selectedCapability} capabilities={capabilities} onChoose={id => setSelectedCapabilityId(id)} stage={stage} setStage={chooseStage} record={selectedCapability ? learning[selectedCapability.entityId] : undefined} desktop={desktop} busy={busy} onUpdate={updateLearning} onProgress={publishLearningView} onLocate={() => { if (selectedCapability) locateCapability(selectedCapability) }} onRecommendChoose={logicalId => { const next = capabilities.find(c => (c.logicalId ?? ('logical:github:' + c.entityId)) === logicalId); if (next) setSelectedCapabilityId(next.id) }} />
+        </section>
+        <aside className="workspace-sidecard learning-path" aria-label="Learning stages">
+          <h2>Path to proficiency</h2>
+          <ol>{nodes.map((node, index) => <li key={node.id}><button aria-pressed={stage === index} onClick={() => chooseStage(index)}><span>{index + 1}</span><div><strong>{node.name}</strong><small>{node.subtitle}</small></div></button></li>)}</ol>
+          <p>Practice evidence, runtime checks and mastery each have their own status.</p>
+        </aside>
+      </>}
+
+      {!focus && page === 'Settings' && <>
+        <section className="workspace-main workspace-form" aria-label="Settings workspace">
+          <SettingsConsole settings={settings} tab={settingsTab} onTab={setSettingsTab} onChange={updateSettings} desktop={desktop} scan={scan} database={database} metrics={metrics} use2d={use2d} backup={backup} onBackup={() => { setBusy(true); void createDesktopDatabaseBackup().then(setBackup).catch(() => reportError('Verified backup could not be created.')).finally(() => setBusy(false)) }} busy={busy} onGuide={() => setGuideStep(readWelcome()?.step ?? 0)} onDiagnostics={() => setShowDiagnostics(true)} />
+        </section>
+        <aside className="workspace-sidecard display-status" aria-label="Display status">
+          <h2>{settingsTab === 'Display' ? 'Display preview' : 'Workspace status'}</h2>
+          <dl><div><dt>Local data</dt><dd>{database}</dd></div><div><dt>Renderer</dt><dd>{use2d ? 'Lightweight 2D' : reducedQuality ? 'Performance 3D' : '3D atlas'}</dd></div>{settingsTab === 'Display' && <div><dt>Star field</dt><dd>{use2d ? '2D' : metrics ? metrics.stars.toLocaleString() + ' active stars' : 'Measuring'}</dd></div>}</dl>
+        </aside>
+      </>}
+
+      {!focus && details && (atlasView || collection) && <aside key={'inspector:' + (selectedItem?.id ?? page)} className="spatial-pod workspace-inspector" aria-label="Capability intelligence">
+        <div className="pod-heading"><h2>{selectedItem ? 'Capability inspector' : page === 'Installed' ? 'Local environment' : page === 'Discover' ? 'Catalog sources' : 'Atlas overview'}</h2><button aria-label="Close details" onClick={() => setDetails(false)}><X size={18} /></button></div>
+        {page === 'Installed' && <div className="scan-console"><div><i className={scan ? 'local-dot' : 'candidate-dot'} />{scan ? 'Last scan ' + new Date(scan.scannedAtUnixMs).toLocaleString() : 'No local scan yet'}</div><button disabled={!desktop || scanning} onClick={() => void scanAgain()}><RefreshCw size={14} />{scanning ? 'Scanning…' : 'Scan Again'}</button>{scanError && <p role="alert" className="console-error scan-error">{scanError}</p>}</div>}
+        {selectedItem ? <>
+          <CapabilityDetails capability={selectedItem} onInspect={id => { const item = capabilities.find(c => (c.logicalId ?? ('logical:github:' + c.entityId)) === id); if (item) locateCapability(item) }} onLearn={() => changePage('Learning')} onWorld={page !== 'World Tree' ? () => locateCapability(selectedItem) : undefined} onInstalled={page !== 'Installed' && selectedItem.origin === 'local' ? () => locateInstalled(selectedItem) : undefined} onMission={() => setMissionOpen(true)} />
+          <GitHubCapabilityControls key={selectedItem.id} capability={selectedItem} onChanged={reloadCatalog} />
+        </> : page === 'Discover' ? <>
+          <div className="pod-subject"><Compass size={30} /><div><small>Codex catalog</small><h3>{functionCategory ? heading : 'Explore capabilities'}</h3></div></div>
+          <p className="pod-description">Select a capability to inspect its source, requirements and Codex integration.</p>
+          <GitHubDiscoveryControls onChanged={reloadCatalog} />
+        </> : page === 'Installed' ? <>
+          <div className="pod-section"><h3>Codex environment</h3><dl><div><dt>Codex home</dt><dd>{scan ? scan.codexHomeFound ? 'Found' : 'Not found' : 'Not scanned'}</dd></div><div><dt>CLI on PATH</dt><dd>{scan ? scan.cliFoundOnPath ? 'Found' : 'Not found' : 'Not scanned'}</dd></div><div><dt>Storage</dt><dd>{database}</dd></div></dl></div>
+          <div className="pod-section"><h3>What a scan checks</h3><p>Valid manifests show up as found. MCP entries show whether configuration exists. Scanning leaves code and servers stopped.</p></div>
+        </> : <>
+          <div className="pod-subject"><Orbit size={30} /><div><small>{selectedNode?.kind === 'domain' ? 'Functional category' : selectedNode?.kind === 'cluster' ? 'Capability type' : 'Capability inventory'}</small><h3>{selectedNode?.kind === 'core' ? 'My Codex' : selectedNode?.name ?? 'My Codex'}</h3></div></div>
+          <div className="workspace-counts"><div><span>Discovery candidates</span><strong>{candidates.length.toLocaleString()}</strong></div><div><span>Local capabilities</span><strong className={scan ? undefined : 'count-unavailable'}>{scan ? local.length.toLocaleString() : 'Not scanned'}</strong></div></div>
+          <p className="pod-description">Search by task or follow a branch to see available Skills, Plugins and MCP servers.</p>
+          <button className="pod-primary" onClick={() => changePage('Discover')}><Compass size={17} />Browse the catalog<ArrowUpRight size={15} /></button>
+          <button className="pod-secondary" onClick={() => changePage('Installed')}><Database size={17} />Open local inventory<ArrowUpRight size={15} /></button>
+          <div className="workspace-trust"><ShieldCheck size={18} aria-hidden="true" /><p>Installation, runtime verification and learning progress are tracked independently.</p></div>
         </>}
-    </aside>}
-    {!focus && !details && <button className="open-pod" onClick={() => setDetails(true)}><Eye size={17} />Details</button>}
-    {!focus && <footer className="universe-footer"><div><span><i className="local-dot" />Local</span><span><i className="candidate-dot" />Discovery</span><span><i className="configured-dot" />Configured / unverified</span></div><span>{page === 'World Tree' ? local.length + ' local · ' + candidates.length + ' candidates · ' + (allMode ? 'All branches' : 'Single branch') : page}</span></footer>}
-    <div className="universe-zoom" title="Left-drag empty space to pan. Right-drag to rotate. Scroll to zoom."><button aria-label="Zoom out" onClick={() => setZoom((v) => Math.max(.35, v - .15))}><Minus size={16} /></button><span>{Math.round(zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setZoom((v) => Math.min(2, v + .15))}><Plus size={16} /></button><button aria-label="Fit View" title="Fit View: adjust camera only" onClick={() => { setZoom(1); setFitToken((v) => v + 1) }}><Maximize2 size={16} /></button></div>
+      </aside>}
+
     {!focus && allDiagnostics.length > 0 && <button className="diagnostics-trigger" onClick={() => setShowDiagnostics(!showDiagnostics)}>Diagnostics <span>{allDiagnostics.length}</span></button>}
     {showDiagnostics && !focus && <div className="diagnostics-center" role="dialog" aria-label="Diagnostics"><div><h2>Diagnostics</h2><button aria-label="Close diagnostics" onClick={() => setShowDiagnostics(false)}><X size={16} /></button></div>{allDiagnostics.map((message) => <p key={message}>{message}</p>)}{pendingOperations.map(op=>{const item=capabilities.find(cap=>cap.entityId===op.plan.entityId);return item&&<button className="pod-secondary" key={op.id} onClick={()=>{setPage('World Tree');setQuery('');setExpanded(new Set([item.functionCategory]));setClusters(new Set(['type:'+item.functionCategory+':'+item.kind]));setSelectedId(item.id);setSelectedCapabilityId(item.id);setDetails(true);setShowDiagnostics(false);setFitToken(value=>value+1)}}>Review interrupted {item.name} · {op.plan.scope}</button>})}</div>}
     </div>
+    {missionOpen && <Suspense fallback={<div className="universe-loading workspace-mission-loading">Opening Mission Control…</div>}><MissionControl reducedMotion={settings.reducedMotion || settings.motion === 0} preferredCapability={selectedCapability && (selectedCapability.logicalId ?? 'logical:github:' + selectedCapability.entityId)} onClose={() => setMissionOpen(false)} onLocate={id => { const cap = capabilities.find(c => (c.logicalId ?? ('logical:github:' + c.entityId)) === id); if (cap) locateCapability(cap) }} onLearn={id => { const cap = capabilities.find(c => (c.logicalId ?? ('logical:github:' + c.entityId)) === id); if (cap) { setMissionOpen(false); setSelectedCapabilityId(cap.id); changePage('Learning') } }} /></Suspense>}
+    {guideStep !== null && <FirstRun initialStep={guideStep} codexDetected={startup?.codexCliOnPath ?? null} onClose={closeGuide} />}
   </main>
 }
-function SparkleMark() { return <span className="intelligence-mark"><GitBranch size={25} /></span> }
 function CapabilityDetails({ capability: item, onLearn, onInspect, onWorld, onInstalled, onMission }: { capability: Capability; onLearn: () => void; onInspect: (id: string) => void; onWorld?: () => void; onInstalled?: () => void; onMission: () => void }) {
   const description = item.summary || 'No additional description was provided by the local metadata.'
-  return <><div className="pod-subject"><span className="pod-capability-icon">{item.kind === 'mcp' ? <GitBranch size={30} /> : item.kind === 'plugin' ? <Box size={30} /> : <BookOpen size={30} />}</span><div><small>{item.origin === 'local' ? 'Local capability' : 'Discovery candidate'}</small><h1>{item.name}</h1><span className="pod-source">{item.source}</span></div></div>
-    <span className={'installation-label status-' + item.installation}><i />{stateLabels[item.installation]}</span><div className="pod-section capability-description"><h2>What it does</h2><p>{description.length > 320 ? description.slice(0, description.lastIndexOf(' ', 290)) + '…' : description}</p>{description.length > 320 && <details><summary>Read full description</summary><p>{description}</p></details>}</div>
+  const learningState = item.learningStatus.replaceAll('_', ' ').toLowerCase()
+  return <>
+    <div className="pod-subject"><span className="pod-capability-icon"><TypeIcon kind={item.kind} size={23} /></span><div><small>{item.origin === 'local' ? 'Local capability' : 'Catalog capability'}</small><h3>{item.name}</h3><span className="pod-source">{item.source}</span></div></div>
+    <div className="inspector-actions">
+      <button className="pod-primary" onClick={onLearn}><BookOpen size={17} />Explore learning path<ArrowUpRight size={15} /></button>
+      <div className="capability-destinations">
+        {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">Open GitHub<ArrowUpRight size={14} /></a>}
+        <button onClick={onMission}><Workflow size={15} />Use in Mission Control</button>
+        {onWorld && <button onClick={onWorld}><GitBranch size={15} />Locate in World Tree</button>}
+        {onInstalled && <button onClick={onInstalled}><Box size={15} />View in Installed</button>}
+      </div>
+    </div>
+    <dl className="inspector-states">
+      <div><dt>Installation</dt><dd><span className={'installation-label status-' + item.installation}><i />{stateLabels[item.installation]}</span></dd></div>
+      <div><dt>Runtime</dt><dd>No check in this view</dd></div>
+      <div><dt>Learning</dt><dd>{learningState}</dd></div>
+    </dl>
+    <div className="pod-section capability-description"><h3>What it does</h3><p>{description.length > 320 ? description.slice(0, description.lastIndexOf(' ', 290)) + '…' : description}</p>{description.length > 320 && <details><summary>Read full description</summary><p>{description}</p></details>}</div>
     {item.item?.compatibilityEvidence && <div className="pod-section discovery-evidence"><h2>Codex integration</h2><p>Codex {item.kind === 'plugin' ? 'plugin manifest' : 'Skill format'} checked at the pinned source revision. Runtime setup is required.</p><dl><div><dt>Repository stars</dt><dd>{item.item.repositoryStars?.toLocaleString()}</dd></div><div><dt>Repository last pushed</dt><dd>{item.item.repositoryPushedAt?.slice(0, 10)}</dd></div><div><dt>Source checked</dt><dd>{item.item.verifiedAt?.slice(0, 10)}</dd></div><div><dt>Source revision</dt><dd>{item.item.sourceRef?.slice(0, 12)}</dd></div></dl><p className="pod-muted">Repository metrics apply to the shared collection, not an individual Skill rating.</p><a href={item.item.compatibilityEvidence} target="_blank" rel="noreferrer">Inspect Codex manifest<ArrowUpRight size={13} /></a><ul>{item.item.setupRequirements?.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul></div>}
-    <IntelligencePanel key={item.entityId} capability={item} onInspect={onInspect}/><div className="pod-section"><h2>Capability details</h2><dl><div><dt>Type</dt><dd>{item.kind}</dd></div><div><dt>Functions</dt><dd>{(item.functionCategories ?? [item.functionCategory]).map((key) => functionLabels[key]).join(', ')}</dd></div><div><dt>Classification</dt><dd>{item.classification}</dd></div><div><dt>License</dt><dd>{item.item?.license ?? 'See local source'}</dd></div><div><dt>Learning</dt><dd>{item.learningStatus.replaceAll('_', ' ').toLowerCase()}</dd></div></dl></div><div className="pod-section"><h2>Learning path</h2><p>Explore → Configure → Practice → Verify → Master</p><p className="pod-muted">Verified progress requires saved evidence.</p></div><button className="pod-primary" onClick={onLearn}><BookOpen size={17} />Explore learning path<ArrowUpRight size={16} /></button><div className="capability-destinations">
-    {onWorld && <button onClick={onWorld}><GitBranch size={15} />Locate in World Tree</button>}
-    {onInstalled && <button onClick={onInstalled}><Box size={15} />View in Installed</button>}
-    <button onClick={onMission}><ArrowUpRight size={15} />Use in Mission Control</button>
-    {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">Open GitHub<ArrowUpRight size={14} /></a>}
-  </div></>
+    <IntelligencePanel key={item.entityId} capability={item} onInspect={onInspect} />
+    <div className="pod-section"><h3>Capability details</h3><dl><div><dt>Type</dt><dd>{item.kind}</dd></div><div><dt>Functions</dt><dd>{(item.functionCategories ?? [item.functionCategory]).map(key => functionLabels[key]).join(', ')}</dd></div><div><dt>Classification</dt><dd>{item.classification}</dd></div><div><dt>License</dt><dd>{item.item?.license ?? 'See local source'}</dd></div></dl></div>
+  </>
 }
 
 function LearningJourney({ capability, capabilities, onChoose, stage, setStage, record, desktop, busy, onUpdate,onLocate,onRecommendChoose,onProgress }: {
@@ -409,11 +550,13 @@ function LearningJourney({ capability, capabilities, onChoose, stage, setStage, 
   }
   let storedEvidence = ''
   try { const data = JSON.parse(record?.evidenceJson ?? '[]'); storedEvidence = Array.isArray(data) ? data.filter((item) => item.type === 'user-practice-note').map((item) => item.content).join('\n') : '' } catch { /* Optional stored evidence remains unverified. */ }
-  return <><div className="pod-subject"><GraduationCap size={34} /><div><small>Learning journey</small><h1>Your learning path</h1></div></div><label className="console-field"><span>Capability</span><select aria-label="Learning capability" value={capability?.id ?? ''} onChange={(event) => { onChoose(event.target.value); setStage(0); setSavedNote(''); setNote('') }}><option value="">Choose a capability</option>{capabilities.map((item) => <option key={item.id} value={item.id}>{item.origin === 'local' ? 'Local · ' : 'Discovery · '}{item.name}</option>)}</select></label>
+  return <><div className="pod-subject"><GraduationCap size={34} /><div><h2>Your learning path</h2></div></div><label className="console-field"><span>Capability</span><select aria-label="Learning capability" value={capability?.id ?? ''} onChange={(event) => { onChoose(event.target.value); setStage(0); setSavedNote(''); setNote('') }}><option value="">Choose a capability</option>{capabilities.map((item) => <option key={item.id} value={item.id}>{item.origin === 'local' ? 'Local · ' : 'Discovery · '}{item.name}</option>)}</select></label>
     {capability&&<LearningWorkbench key={capability.entityId} capability={capability} stage={stage} onStage={setStage} onLocate={onLocate} onChoose={onRecommendChoose} onReady={setEngineReady} onProgress={onProgress}/>}
-    <details className="legacy-learning" open={!engineReady}><summary>Earlier exploration notes</summary><div className="journey-tabs">{stageNames.map((name, index) => <button key={name} aria-pressed={stage === index} onClick={() => setStage(index)}><span>{index + 1}</span>{name}</button>)}</div>
-    <div className="pod-section"><h2>{stageNames[stage]}</h2><p>{descriptions[stage]}</p></div>
-    <div className="learning-status">{record ? record.status.replaceAll('_', ' ').toLowerCase() : 'No learning records yet'}<small>{record ? 'Saved locally. Progress is separate from installation.' : 'Choose a capability and start exploring.'}</small></div>
+    {!capability && <div className="learning-status">No learning records yet<small>Choose a capability to start exploring.</small></div>}
+    <details className="legacy-learning" open={!engineReady}>
+      <summary>{capability ? 'Exploration notes' : 'About this stage'}</summary>
+      <div className="pod-section"><h3>{stageNames[stage]}</h3><p>{descriptions[stage]}</p></div>
+      {capability && <div className="learning-status">{record ? record.status.replaceAll('_', ' ').toLowerCase() : 'No learning records yet'}<small>{record ? 'Saved locally.' : 'Save your first learning observation in the desktop app.'}</small></div>}
     {capability && <><div className="pod-section"><h2>{capability.name}</h2><p>{capability.summary}</p><p className="pod-muted">{stateLabels[capability.installation]}</p></div>
       {stage === 0 && <button className="pod-primary" disabled={!desktop || busy} onClick={() => void onUpdate('EXPLORING')}>Start learning<ArrowUpRight size={16} /></button>}
       {stage === 1 && capability.sourceUrl && <a className="pod-secondary" href={capability.sourceUrl} target="_blank" rel="noreferrer">Review setup instructions<ArrowUpRight size={15} /></a>}
@@ -427,15 +570,15 @@ function LearningJourney({ capability, capabilities, onChoose, stage, setStage, 
 }
 const ignoreModelSelection = () => undefined
 
-function SettingsConsole({ settings, tab, onTab, onChange, desktop, scan, database, metrics, backup, onBackup, busy, onDiagnostics, onGuide }: {
+function SettingsConsole({ settings, tab, onTab, onChange, desktop, scan, database, metrics, use2d, backup, onBackup, busy, onDiagnostics, onGuide }: {
   settings: UniverseSettings; tab: string; onTab: (tab: string) => void
   onChange: <K extends keyof UniverseSettings>(key: K, value: UniverseSettings[K]) => void
   desktop: boolean; scan: CodexScanReport | null; database: string; metrics: RenderMetrics | null
-  backup: string; onBackup: () => void; busy: boolean; onDiagnostics: () => void; onGuide: () => void
+  use2d: boolean; backup: string; onBackup: () => void; busy: boolean; onDiagnostics: () => void; onGuide: () => void
 }) {
-  return <><div className="pod-subject"><Settings2 size={34} /><div><small>Spatial control console</small><h1>Universe settings</h1></div></div><div className="console-tabs">{['Display', 'Local Codex', 'AI Providers', 'Privacy'].map((name) => <button key={name} aria-pressed={name === tab} onClick={() => onTab(name)}>{name}</button>)}</div>
+  return <><div className="pod-subject"><Settings2 size={34} /><div><h2>Universe settings</h2></div></div><div className="console-tabs">{['Display', 'Local Codex', 'AI Providers', 'Privacy'].map((name) => <button key={name} aria-pressed={name === tab} onClick={() => onTab(name)}>{name}</button>)}</div>
     {tab === 'AI Providers' && (desktop ? <ModelRegistryPanel settings disabled={busy} complex={false} onSelection={ignoreModelSelection}/> : <p>Open the Windows desktop app to manage secure model credentials and budgets.</p>)}
-    {tab === 'Display' && <><label className="console-field"><span>Rendering mode</span><select aria-label="Rendering mode" value={settings.rendering} onChange={event => onChange('rendering', event.target.value as UniverseSettings['rendering'])}><option value="auto">Automatic</option><option value="3d">Keep 3D</option><option value="2d">Lightweight 2D</option></select></label><label className="console-toggle"><span>Star field</span><input type="checkbox" aria-label="Star field" checked={settings.stars} onChange={event => onChange('stars',event.target.checked)}/></label><label className="console-toggle"><span>Particles</span><input type="checkbox" aria-label="Particles" checked={settings.particles} onChange={event => onChange('particles',event.target.checked)}/></label><label className="console-toggle"><span>Nebula field<small>Three-dimensional gas volumes in the shared universe.</small></span><input type="checkbox" aria-label="Nebula field" checked={settings.nebula} onChange={(event) => onChange('nebula', event.target.checked)} /></label><label className="console-field"><span>Bloom intensity<small>Only HDR highlights bloom; Performance mode disables this pass.</small></span><input type="range" aria-label="Bloom intensity" min="0" max=".8" step=".05" value={settings.bloom} onChange={(event) => onChange('bloom', Number(event.target.value))} /><output>{Math.round(settings.bloom * 100)}%</output></label><label className="console-field"><span>3D Quality<small>Controls render resolution, gas sampling, and the post-processing budget.</small></span><select aria-label="3D Quality" value={settings.quality} onChange={(event) => onChange('quality', event.target.value as UniverseSettings['quality'])}><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High · bloom</option></select></label><label className="console-field"><span>Particle Density<small>Adjusts Drei Stars and Sparkles in the active scene.</small></span><input type="range" aria-label="Particle Density" min=".15" max="1.5" step=".05" value={settings.density} onChange={(event) => onChange('density', Number(event.target.value))} /><output>{Math.round(settings.density * 100)}%</output></label><label className="console-field"><span>Motion Intensity<small>Applies to particles, orbit drift, and camera transitions.</small></span><input type="range" aria-label="Motion Intensity" min="0" max="1" step=".05" value={settings.motion} onChange={(event) => onChange('motion', Number(event.target.value))} /><output>{Math.round(settings.motion * 100)}%</output></label><label className="console-toggle"><span>Reduced Motion<small>Stops ambient motion and uses on-demand rendering.</small></span><input type="checkbox" aria-label="Reduced Motion" checked={settings.reducedMotion} onChange={(event) => onChange('reducedMotion', event.target.checked)} /></label><div className="pod-section"><h2>Live renderer</h2><p>{metrics ? metrics.renderer + ' · ' + (metrics.fps ? metrics.fps + ' fps · P95 ' + metrics.p95 + ' ms' : 'on-demand rendering') + ' · ' + metrics.calls + ' draw calls' : 'Measuring the active renderer…'}</p><p className="pod-muted">{metrics ? metrics.stars + ' distant stars · ' + metrics.sparkles + ' spatial particles' : 'Drei Stars and Sparkles are active in the shared scene.'}</p></div></>}
+    {tab === 'Display' && <><label className="console-field"><span>Rendering mode</span><select aria-label="Rendering mode" value={settings.rendering} onChange={event => onChange('rendering', event.target.value as UniverseSettings['rendering'])}><option value="auto">Automatic</option><option value="3d">Keep 3D</option><option value="2d">Lightweight 2D</option></select></label><label className="console-toggle"><span>Star field</span><input type="checkbox" aria-label="Star field" checked={settings.stars} onChange={event => onChange('stars',event.target.checked)}/></label><label className="console-toggle"><span>Particles</span><input type="checkbox" aria-label="Particles" checked={settings.particles} onChange={event => onChange('particles',event.target.checked)}/></label><label className="console-toggle"><span>Nebula field<small>Three-dimensional gas volumes in the shared universe.</small></span><input type="checkbox" aria-label="Nebula field" checked={settings.nebula} onChange={(event) => onChange('nebula', event.target.checked)} /></label><label className="console-field"><span>Bloom intensity<small>Only HDR highlights bloom; Performance mode disables this pass.</small></span><input type="range" aria-label="Bloom intensity" min="0" max=".8" step=".05" value={settings.bloom} onChange={(event) => onChange('bloom', Number(event.target.value))} /><output>{Math.round(settings.bloom * 100)}%</output></label><label className="console-field"><span>3D Quality<small>Controls render resolution, gas sampling, and the post-processing budget.</small></span><select aria-label="3D Quality" value={settings.quality} onChange={(event) => onChange('quality', event.target.value as UniverseSettings['quality'])}><option value="low">Performance</option><option value="balanced">Balanced</option><option value="high">High · bloom</option></select></label><label className="console-field"><span>Particle Density<small>Adjusts Drei Stars and Sparkles in the active scene.</small></span><input type="range" aria-label="Particle Density" min=".15" max="1.5" step=".05" value={settings.density} onChange={(event) => onChange('density', Number(event.target.value))} /><output>{Math.round(settings.density * 100)}%</output></label><label className="console-field"><span>Motion Intensity<small>Applies to particles, orbit drift, and camera transitions.</small></span><input type="range" aria-label="Motion Intensity" min="0" max="1" step=".05" value={settings.motion} onChange={(event) => onChange('motion', Number(event.target.value))} /><output>{Math.round(settings.motion * 100)}%</output></label><label className="console-toggle"><span>Reduced Motion<small>Stops ambient motion and uses on-demand rendering.</small></span><input type="checkbox" aria-label="Reduced Motion" checked={settings.reducedMotion} onChange={(event) => onChange('reducedMotion', event.target.checked)} /></label><div className="pod-section"><h2>Live renderer</h2><p>{use2d ? 'Lightweight 2D is active.' : metrics ? metrics.renderer + ' · ' + (metrics.fps ? metrics.fps + ' fps · P95 ' + metrics.p95 + ' ms' : 'on-demand rendering') + ' · ' + metrics.calls + ' draw calls' : 'Measuring the active renderer…'}</p><p className="pod-muted">{!use2d && metrics ? metrics.stars + ' distant stars · ' + metrics.sparkles + ' spatial particles' : ''}</p></div></>}
     {tab === 'Local Codex' && <><div className="pod-section"><h2>Local environment</h2><dl><div><dt>Mode</dt><dd>{desktop ? 'Native desktop' : 'Browser preview'}</dd></div><div><dt>Codex home</dt><dd>{scan ? scan.codexHomeFound ? 'Detected' : 'Not found' : 'Not scanned'}</dd></div><div><dt>Codex CLI</dt><dd>{scan ? scan.cliFoundOnPath ? 'Detected' : 'Not found' : 'Not scanned'}</dd></div></dl></div><label className="console-toggle"><span>Restore last scan<small>Load saved findings on the next application launch.</small></span><input type="checkbox" aria-label="Restore last scan" checked={settings.restoreScan} onChange={(event) => onChange('restoreScan', event.target.checked)} /></label><label className="console-toggle"><span>Scan on startup<small>Run the read-only Codex scan on the next launch.</small></span><input type="checkbox" aria-label="Scan on startup" checked={settings.autoScan} onChange={(event) => onChange('autoScan', event.target.checked)} /></label><div className="pod-section"><h2>Data storage</h2><p>{database}. Capability metadata, scans, and learning records use SQLite. Display preferences and spatial layout use this WebView's local storage.</p></div><button className="pod-secondary" disabled={!desktop || busy} onClick={onBackup}>{busy ? 'Creating backup…' : 'Create verified SQLite backup'}</button>{backup && <p className="console-success" role="status">Backup verified: {backup}</p>}</>}
     {tab === 'Privacy' && <><div className="pod-section"><h2>Local-first operation</h2><p>Scanning reads metadata. Skills are not executed, MCP servers are not launched, and Codex configuration is not edited.</p></div><div className="pod-section"><h2>AI provider</h2><p>Live model requests require explicit consent. Provider keys are saved in the operating system credential store.</p></div><div className="pod-section"><h2>Diagnostics</h2><p>Inspect application and database errors in the diagnostics center. Sensitive configuration values are not displayed.</p></div><button className="pod-secondary" onClick={onDiagnostics}>Open diagnostics</button><button className="pod-secondary" onClick={onGuide}>Open getting started</button></>}
   </>

@@ -12,9 +12,7 @@ SkillVerse AI is a Windows desktop application for finding, reviewing, and manag
 
 ## Interface
 
-![SkillVerse AI desktop interface](ui/skillverse-ui.png)
-
-The screenshot shows the app's browser preview. Native Codex scanning and file operations require the Windows desktop build.
+See the [workspace screenshot gallery](ui/screenshots/README.md) for the capability atlas, catalog, inventory, learning, settings, and Mission Control. Native Codex scanning and file operations require the Windows desktop build.
 
 ## Technology and structure
 

@@ -324,15 +324,17 @@ function Scene({ page, nodes, selectedId, positions, settings, focus, background
     const bounds = nodes.map((node) => fitPositions.current[node.id])
     const width = bounds.length ? Math.max(...bounds.map((p) => p[0])) - Math.min(...bounds.map((p) => p[0])) + 4 : 12
     const height = bounds.length ? Math.max(...bounds.map((p) => p[1])) - Math.min(...bounds.map((p) => p[1])) + 3 : 8
-    const fitDistance = Math.max(orbitSizes[page], height / (focus ? .7 : .59), width / (size.width / size.height * (focus ? .85 : .66)) / .65) / zoom
-    const distance = Math.min(denseSelection ? 24 : 58, fitDistance)
-    const centerX = bounds.length ? (Math.max(...bounds.map((p) => p[0])) + Math.min(...bounds.map((p) => p[0]))) / 2 : -2
-    const treeOverview = page === 'World Tree' && nodes.every((node) => node.kind === 'core' || node.kind === 'domain')
-    const sideBias = treeOverview ? .43 : page === 'World Tree' ? .29 : .33
-    const sideOffset = size.width < 760 ? 0 : distance * Math.tan(43 * Math.PI / 360) * size.width / size.height * sideBias
+    // The map lives in a dedicated pane, including room for its screen-space labels.
+    const labelInset = size.width > 570 ? 167 : size.width > 410 ? 135 : 112
+    const usableWidth = Math.max(size.width * .35, size.width - labelInset * 2)
+    const horizontalFit = Math.max(2, width - 3.2) * size.height / (usableWidth * .79)
+    const fitDistance = Math.max(orbitSizes[page], height / .7, horizontalFit) / zoom
+    const distance = Math.min(denseSelection ? 24 : 85, fitDistance)
+    const centerX = bounds.length ? (Math.max(...bounds.map(p => p[0])) + Math.min(...bounds.map(p => p[0]))) / 2 : 0
     const selectedPosition = denseSelection ? fitPositions.current[denseSelection.id] : undefined
     const anchorX = selectedPosition?.[0] ?? centerX
-    targetLook.current.set(focus ? anchorX : anchorX + sideOffset, selectedPosition?.[1] ?? (focus ? 0 : .65), 0)
+    const centerY = bounds.length ? (Math.max(...bounds.map(p => p[1])) + Math.min(...bounds.map(p => p[1]))) / 2 : 0
+    targetLook.current.set(anchorX, selectedPosition?.[1] ?? centerY, 0)
     targetCamera.current.set(targetLook.current.x, targetLook.current.y, distance)
     transitioning.current = true
   }, [page, fitToken, focus, zoom, nodes, denseSelection, size.width, size.height])
@@ -428,7 +430,7 @@ export default function UniverseEngine(props: Props) {
     void sampleWindow()
     return () => { active = false; window.clearTimeout(timer) }
   }, [])
-  const fallback = <UniverseFallback nodes={props.nodes} onSelect={props.onSelect} />
+  const fallback = <UniverseFallback nodes={props.nodes} selectedId={props.selectedId} onSelect={props.onSelect} />
   const frameloop = contextLost || hidden || minimized ? 'never' : props.background || props.settings.reducedMotion || props.settings.motion === 0 ? 'demand' : 'always'
   return <RenderBoundary fallback={fallback}>
     <div ref={orbLabels} className="universe-orb-labels" style={{ visibility: contextLost ? 'hidden' : undefined }} aria-hidden={contextLost || undefined} />
